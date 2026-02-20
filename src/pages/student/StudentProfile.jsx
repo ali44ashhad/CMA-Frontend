@@ -220,19 +220,7 @@ const StudentProfile = ({
             ) : (
               <div className="space-y-5">
                 {/* Profile Info Display */}
-                <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
-                  <div className="w-20 h-20 bg-gradient-to-br from-[#137952]/20 to-purple-100 rounded-2xl flex items-center justify-center">
-                    <span className="text-3xl font-bold text-[#137952]">
-                      {currentProfile?.name?.charAt(0) || 'S'}
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-gray-900">{currentProfile?.name}</h4>
-                    <span className="inline-flex items-center px-2.5 py-1 bg-[#137952]/10 text-[#137952] text-xs font-medium rounded-full border border-[#137952]/30 mt-1 capitalize">
-                      {currentProfile?.role || 'Student'}
-                    </span>
-                  </div>
-                </div>
+                 
 
                 <div className="grid gap-4">
                   <div className="flex items-start gap-3">

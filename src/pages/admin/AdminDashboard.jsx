@@ -111,7 +111,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* Admin Status Card */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            {/* <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gradient-to-r from-[#137952]/80 to-[#137952] rounded-full flex items-center justify-center text-white font-bold text-xl">
                   {user?.name?.charAt(0) || "A"}
@@ -123,7 +123,7 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
 

@@ -5,6 +5,7 @@ const UserManagement = ({ accessToken }) => {
   const [users, setUsers] = useState([]);
   const [userFilter, setUserFilter] = useState("all"); // all | students | evaluators
   const [loading, setLoading] = useState(false);
+  const [userPackagesMap, setUserPackagesMap] = useState({}); // userId -> [package names]
   const [showOnboardModal, setShowOnboardModal] = useState(false);
   const [evaluatorForm, setEvaluatorForm] = useState({
     name: "",
@@ -38,6 +39,29 @@ const UserManagement = ({ accessToken }) => {
     };
     load();
   }, [userFilter, accessToken]);
+
+  // Fetch purchases so we can show which user bought which package
+  useEffect(() => {
+    if (!accessToken) return;
+    const loadPurchases = async () => {
+      try {
+        const data = await authedFetch("/purchases?limit=500");
+        const list = data.purchases || data.items || data || [];
+        const map = {};
+        (Array.isArray(list) ? list : []).forEach((p) => {
+          const uid = p.studentId?._id || p.studentId;
+          if (!uid) return;
+          const name = p.packageId?.name || p.packageName || "Package";
+          if (!map[uid]) map[uid] = [];
+          if (!map[uid].includes(name)) map[uid].push(name);
+        });
+        setUserPackagesMap(map);
+      } catch (e) {
+        console.error("Purchases load error:", e);
+      }
+    };
+    loadPurchases();
+  }, [accessToken]);
 
   const totalUsers = users.length;
   const totalStudents = users.filter((u) => u.role === "student").length;
@@ -133,9 +157,8 @@ const UserManagement = ({ accessToken }) => {
                   <th className="px-3 py-2 border-b text-left">Name</th>
                   <th className="px-3 py-2 border-b text-left">Email</th>
                   <th className="px-3 py-2 border-b text-left">Role</th>
-                  <th className="px-3 py-2 border-b w-24 text-center">
-                    Actions
-                  </th>
+                  <th className="px-3 py-2 border-b text-left">Purchased packages</th>
+                   {/* <th className="px-3 py-2 border-b text-left">Actions</th> */}
                 </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -152,7 +175,20 @@ const UserManagement = ({ accessToken }) => {
                       <td className="px-3 py-2 capitalize text-gray-700">
                         {u.role}
                       </td>
-                      <td className="px-3 py-2 text-center">
+                      <td className="px-3 py-2 text-gray-600">
+                        {u.role === "student" ? (
+                          (userPackagesMap[u._id] && userPackagesMap[u._id].length > 0) ? (
+                            <span className="text-[11px]">
+                              {userPackagesMap[u._id].join(", ")}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-[11px]">—</span>
+                          )
+                        ) : (
+                          <span className="text-gray-400 text-[11px]">—</span>
+                        )}
+                      </td>
+                      {/* <td className="px-3 py-2 text-center">
                         <button
                           className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-red-50 text-[11px] font-medium text-red-600 hover:bg-red-100"
                           onClick={async () => {
@@ -177,7 +213,7 @@ const UserManagement = ({ accessToken }) => {
                         >
                           Delete
                         </button>
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
                 </tbody>

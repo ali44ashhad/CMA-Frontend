@@ -1,4 +1,20 @@
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+
 const CTA = () => {
+    const navigate = useNavigate();
+    const { user, isAuthenticated } = useAuth();
+
+    const handleStartTest = () => {
+        if (!isAuthenticated || !user) {
+            navigate("/login");
+            return;
+        }
+        if (user.role === "admin") navigate("/admin/dashboard");
+        else if (user.role === "evaluator") navigate("/evaluator/dashboard");
+        else navigate("/student/dashboard");
+    };
+
     return (
       <section className="relative overflow-hidden">
         {/* Background Gradient */}
@@ -63,12 +79,12 @@ const CTA = () => {
   
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row justify-center gap-6 mb-16">
-            <button className="px-10 py-5 bg-white text-[#137952] font-bold text-lg rounded-xl shadow-xl hover:-translate-y-1 transition">
+            <button
+              type="button"
+              onClick={handleStartTest}
+              className="px-10 py-5 bg-white text-[#137952] font-bold text-lg rounded-xl shadow-xl hover:-translate-y-1 transition"
+            >
               Start Free Foundation Test
-            </button>
-  
-            <button className="px-10 py-5 border-2 border-white/30 text-white font-bold text-lg rounded-xl backdrop-blur hover:border-white transition">
-              View All Test Series
             </button>
           </div>
   

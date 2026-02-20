@@ -40,6 +40,7 @@ export const STUDENT_ENDPOINTS = {
 export const ADMIN_ENDPOINTS = {
   USERS: "/admin/users",
   USER: (userId) => `/admin/users/${userId}`,
+  PURCHASES: "/admin/purchases",
   EVALUATORS: "/admin/evaluators",
 
   PACKAGES: "/admin/packages",
@@ -49,6 +50,7 @@ export const ADMIN_ENDPOINTS = {
   TOPICS: "/admin/topics",
   TOPIC: (topicId) => `/admin/topics/${topicId}`,
 
+  EXAMS: "/admin/exams",
   EXAMS_MCQ: "/admin/exams/mcq",
   EXAMS_PDF: "/admin/exams/pdf",
   EXAM: (examId) => `/admin/exams/${examId}`,

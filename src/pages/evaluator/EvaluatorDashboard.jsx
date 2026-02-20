@@ -67,10 +67,10 @@ const EvaluatorDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
+    <div className="relative min-h-screen bg-gradient-to-b from-gray-50 to-white py-8 sm:py-12 overflow-hidden">
       {/* Background Elements */}
-      <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-r from-[#137952]/5 to-purple-500/5 transform -skew-y-3 -translate-y-12" />
-      <div className="absolute inset-0 opacity-[0.02]">
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-56 sm:h-64 bg-gradient-to-r from-[#137952]/5 to-purple-500/5 transform -skew-y-3 -translate-y-10 sm:-translate-y-12" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.02]">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern
@@ -93,8 +93,8 @@ const EvaluatorDashboard = () => {
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Welcome Banner */}
-        <div className="mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#137952]/10 to-[#137952]/5 border border-[#137952]/30 rounded-full mb-4">
+        <div className="mb-6 sm:mb-8">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#137952]/10 to-[#137952]/5 border border-[#137952]/30 rounded-full mb-3 sm:mb-4">
             <div className="w-2 h-2 bg-[#137952] rounded-full animate-pulse" />
             <span className="text-sm font-medium text-[#137952]">
               Evaluator Dashboard
@@ -103,38 +103,25 @@ const EvaluatorDashboard = () => {
 
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
                 Welcome back,
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#137952] to-[#0d5c3d]">
                   {user?.name || "Evaluator"} 👋
                 </span>
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm sm:text-base text-gray-600 max-w-2xl">
                 Review assigned answer sheets, accept or reject assignments, and
                 submit evaluations.
               </p>
             </div>
-
-            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-[#137952]/80 to-[#137952] rounded-full flex items-center justify-center text-white font-bold text-xl">
-                  {user?.name?.charAt(0) || "E"}
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Logged in as</div>
-                  <div className="font-semibold text-gray-900">
-                    {user?.email || "evaluator@example.com"}
-                  </div>
-                </div>
-              </div>
-            </div>
+ 
           </div>
         </div>
 
         {/* Dashboard Grid */}
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           <aside className="lg:w-80">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden sticky top-6">
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden lg:sticky lg:top-6">
               <div className="bg-gradient-to-r from-[#137952] to-[#0d5c3d] px-6 py-5">
                 <h2 className="text-lg font-semibold text-white mb-1">
                   Evaluator Panel

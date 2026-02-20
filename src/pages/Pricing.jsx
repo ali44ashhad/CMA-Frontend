@@ -1,6 +1,21 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Pricing = () => {
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+
+  const handleGetStarted = () => {
+    if (!isAuthenticated || !user) {
+      navigate("/login");
+      return;
+    }
+    if (user.role === "admin") navigate("/admin/dashboard");
+    else if (user.role === "evaluator") navigate("/evaluator/dashboard");
+    else navigate("/student/dashboard");
+  };
+
   const plans = [
     {
       name: "Foundation Starter",
@@ -223,7 +238,11 @@ const Pricing = () => {
                   ))}
                 </ul>
 
-                <button className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#137952] to-[#0d5c3d] hover:from-[#0d5c3d] hover:to-[#0a4a2e] shadow-md hover:shadow-lg transition-all">
+                <button
+                  type="button"
+                  onClick={handleGetStarted}
+                  className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#137952] to-[#0d5c3d] hover:from-[#0d5c3d] hover:to-[#0a4a2e] shadow-md hover:shadow-lg transition-all"
+                >
                   Get Started
                   <svg
                     className="w-4 h-4 ml-2"

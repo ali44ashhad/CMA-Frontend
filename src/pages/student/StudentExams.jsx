@@ -320,7 +320,7 @@ function ExamList({ exams, onDetails, onLeaderboard, onStartExam, onBack }) {
   );
 }
 
-const StudentExams = ({ accessToken }) => {
+const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
   const [packages, setPackages] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [exams, setExams] = useState([]);
@@ -334,6 +334,7 @@ const StudentExams = ({ accessToken }) => {
 
   const [examDetails, setExamDetails] = useState(null);
   const [leaderboard, setLeaderboard] = useState(null);
+  const [marksByExamId, setMarksByExamId] = useState({});
 
   const [attemptIdInput, setAttemptIdInput] = useState("");
   const [attemptDetails, setAttemptDetails] = useState(null);
@@ -389,6 +390,41 @@ const StudentExams = ({ accessToken }) => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
+
+  useEffect(() => {
+    if (resetTrigger > 0) {
+      setView("levels");
+      setSelectedLevel(null);
+      setSelectedPackage(null);
+    }
+  }, [resetTrigger]);
+
+  // Fetch leaderboard myMarks for each submitted/evaluated exam so table shows same as leaderboard
+  useEffect(() => {
+    if (!accessToken || !exams.length) return;
+    const submitted = exams.filter((e) => e.attemptStatus === "submitted" || e.attemptStatus === "evaluated");
+    if (submitted.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const next = {};
+      await Promise.all(
+        submitted.map(async (exam) => {
+          try {
+            const data = await authedFetch(
+              `${STUDENT_ENDPOINTS.LEADERBOARD(exam._id)}?page=1&limit=1`
+            );
+            const payload = data?.data ?? data ?? {};
+            if (!cancelled && payload.myMarks != null) next[exam._id] = payload.myMarks;
+          } catch (_) {
+            // ignore per-exam errors
+          }
+        })
+      );
+      if (!cancelled) setMarksByExamId((prev) => ({ ...prev, ...next }));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken, exams]);
 
   const purchasedPackageIds = new Set((purchases || []).map((p) => String(p.packageId?._id ?? p.packageId)));
   const accessibleExamPackageIds = new Set();
@@ -470,6 +506,9 @@ const StudentExams = ({ accessToken }) => {
       );
       const payload = data?.data ?? data;
       setLeaderboard(payload);
+      if (payload && payload.myMarks != null) {
+        setMarksByExamId((prev) => ({ ...prev, [examId]: payload.myMarks }));
+      }
     } catch (e) {
       setExamError(e.message || "Failed to load leaderboard");
     }
@@ -528,6 +567,15 @@ const StudentExams = ({ accessToken }) => {
     }
   };
 
+  const clearAttemptFromView = () => {
+    setAttemptDetails(null);
+    setAttemptIdInput("");
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers({});
+    setMcqSubmitted(false);
+    setPdfSubmittedLocal(false);
+  };
+
   const handleSubmitMcq = async (options = {}) => {
     const { autoSubmit = false } = options;
     if (!attemptIdInput || mcqSubmitted) return;
@@ -537,7 +585,8 @@ const StudentExams = ({ accessToken }) => {
       const data = await authedFetch(STUDENT_ENDPOINTS.SUBMIT_MCQ(attemptIdInput), { method: "POST" });
       setMcqSubmitted(true);
       setExamMessage(`🎯 Submitted! Score: ${data.marks}/${data.maxMarks} | Rank: ${data.rank}`);
-      loadData();
+      await loadData();
+      clearAttemptFromView();
     } catch (e) {
       setExamError(e.message || "Failed to submit MCQ exam");
     }
@@ -561,11 +610,9 @@ const StudentExams = ({ accessToken }) => {
       if (!data.success) throw new Error(data.message || "Upload failed");
       const payload = data.data || data;
       setPdfSubmittedLocal(true);
-      setAttemptDetails((prev) =>
-        prev ? { ...prev, status: "submitted", submittedPdfUrl: payload.submittedPdfUrl || prev.submittedPdfUrl } : prev
-      );
       setExamMessage("📄 Answer sheet submitted successfully. Your exam has been submitted.");
-      loadData();
+      await loadData();
+      clearAttemptFromView();
     } catch (e) {
       setExamError(e.message || "Failed to upload PDF answer");
     }
@@ -620,12 +667,7 @@ const StudentExams = ({ accessToken }) => {
         <div>
           <h2 className="text-xl font-bold text-gray-900 mb-1">Available Exams</h2>
           <p className="text-sm text-gray-600 mb-1">Choose a level → package → test</p>
-          <Breadcrumb
-            levelName={selectedLevel ? String(selectedLevel).replace(/^./, (c) => c.toUpperCase()) : null}
-            packageName={selectedPackage?.name}
-            onGoToLevels={handleBackToLevels}
-            onGoToPackages={handleBackToPackages}
-          />
+          
         </div>
         <div className="flex flex-wrap items-end gap-2 bg-white p-3 rounded-xl border border-gray-200">
           <div>
@@ -777,8 +819,9 @@ const StudentExams = ({ accessToken }) => {
                   <p className="text-sm text-gray-600">No submissions yet.</p>
                 </div>
               ) : (
-                <div className="rounded-xl border border-gray-200 overflow-hidden">
-                  <table className="w-full text-xs">
+                <div className="rounded-xl border border-gray-200">
+                  <div className="w-full overflow-x-auto">
+                  <table className="w-full text-xs min-w-[360px]">
                     <thead className="bg-gray-50 text-gray-600">
                       <tr>
                         <th className="px-3 py-2 text-left">Rank</th>
@@ -796,6 +839,7 @@ const StudentExams = ({ accessToken }) => {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -990,14 +1034,16 @@ const StudentExams = ({ accessToken }) => {
           {exams.filter((e) => e.attemptStatus === "submitted" || e.attemptStatus === "evaluated").length > 0 && (
             <div className="space-y-3 pt-4 border-t border-gray-200">
               <h4 className="text-sm font-semibold text-gray-700">Your submitted exams</h4>
-              <div className="rounded-xl border border-gray-200 overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="rounded-xl border border-gray-200">
+                <div className="w-full overflow-x-auto">
+                <table className="w-full text-sm min-w-[420px]">
                   <thead className="bg-gray-50 text-gray-600">
                     <tr>
                       <th className="px-4 py-2.5 text-left font-medium">Exam</th>
                       <th className="px-4 py-2.5 text-left font-medium">Level</th>
                       <th className="px-4 py-2.5 text-left font-medium">Status</th>
                       <th className="px-4 py-2.5 text-right font-medium">Marks</th>
+                      <th className="px-4 py-2.5 text-left font-medium">Remarks</th>
                       <th className="px-4 py-2.5 text-right font-medium">Action</th>
                     </tr>
                   </thead>
@@ -1011,14 +1057,41 @@ const StudentExams = ({ accessToken }) => {
                             {exam.attemptStatus === "evaluated" ? "Evaluated" : "Submitted"}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-right font-medium text-gray-900">{exam.attemptMarks != null ? `${exam.attemptMarks} / ${exam.maxMarks}` : "—"}</td>
+                        <td className="px-4 py-2.5 text-right font-medium text-gray-900">
+                          {marksByExamId[exam._id] != null
+                            ? `${marksByExamId[exam._id]} / ${exam.maxMarks ?? "—"}`
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-600 max-w-[200px]">
+                          {exam.evaluatorRemarks ? (
+                            <span title={exam.evaluatorRemarks} className="line-clamp-2 text-xs">
+                              {exam.evaluatorRemarks}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
+                        </td>
                         <td className="px-4 py-2.5 text-right">
-                          <button type="button" onClick={() => handleLeaderboard(exam._id)} className="text-[#137952] hover:text-[#0d5c3d] font-medium text-xs">Leaderboard</button>
+                          <div className="flex items-center justify-end gap-2 flex-wrap">
+                            {exam.attemptStatus === "evaluated" && exam.checkedPdfUrl && (
+                              <a
+                                href={exam.checkedPdfUrl.startsWith("http") ? exam.checkedPdfUrl : `${BASE_URL.replace(/\/api\/v1$/, "")}${exam.checkedPdfUrl.startsWith("/") ? "" : "/"}${exam.checkedPdfUrl}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#137952]/10 text-[#137952] hover:bg-[#137952]/20 font-medium text-xs"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                View PDF
+                              </a>
+                            )}
+                            <button type="button" onClick={() => handleLeaderboard(exam._id)} className="text-[#137952] hover:text-[#0d5c3d] font-medium text-xs">Leaderboard</button>
+                          </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BASE_URL, BASE_URL_ADMINS, STUDENT_ENDPOINTS, authedJsonFetch } from "../../api";
+import { BASE_URL_ADMINS, authedJsonFetch } from "../../api";
 
 const ExamManagement = ({ accessToken }) => {
   const [exams, setExams] = useState([]);
@@ -63,11 +63,8 @@ const ExamManagement = ({ accessToken }) => {
     if (!accessToken) return;
     try {
       setExamsLoading(true);
-      const data = await authedJsonFetch(
-        `${BASE_URL}${STUDENT_ENDPOINTS.EXAMS}`,
-        accessToken
-      );
-      const list = data.exams || data.items || data;
+      const data = await authedFetch("/exams");
+      const list = data?.exams ?? data?.items ?? data;
       setExams(Array.isArray(list) ? list : []);
     } catch (e) {
       console.error("Load exams failed", e);

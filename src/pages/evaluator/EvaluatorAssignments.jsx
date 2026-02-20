@@ -209,8 +209,9 @@ const EvaluatorAssignments = ({ accessToken }) => {
       ) : assignments.length === 0 ? (
         <p className="text-xs text-gray-500">No assignments found for the selected filter.</p>
       ) : (
-        <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
-          <table className="w-full text-xs min-w-[500px]">
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-xs min-w-[500px]">
             <thead className="bg-gray-50 text-gray-600">
               <tr>
                 <th className="px-3 py-2 border-b text-left">Exam / Title</th>
@@ -294,6 +295,7 @@ const EvaluatorAssignments = ({ accessToken }) => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

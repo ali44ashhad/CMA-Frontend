@@ -9,6 +9,7 @@ import StudentPackages from "./StudentPackages";
 const StudentDashboard = () => {
   const { user, accessToken, updateUser, changePassword, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
+  const [examsResetTrigger, setExamsResetTrigger] = useState(0);
   const [stats, setStats] = useState({ testsTaken: 0, activePackages: 0, avgScore: null });
   const [statsLoading, setStatsLoading] = useState(false);
 
@@ -79,7 +80,7 @@ const StudentDashboard = () => {
     }
 
     if (activeTab === "exams") {
-      return <StudentExams accessToken={accessToken} />;
+      return <StudentExams accessToken={accessToken} resetTrigger={examsResetTrigger} />;
     }
 
     return null;
@@ -126,7 +127,7 @@ const StudentDashboard = () => {
             </div>
             
             {/* User Status Badge */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            {/* <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gradient-to-r from-[#137952]/80 to-[#137952] rounded-full flex items-center justify-center text-white font-bold text-xl">
                   {user?.name?.charAt(0) || 'S'}
@@ -136,7 +137,7 @@ const StudentDashboard = () => {
                   <div className="font-semibold text-gray-900">{user?.email || 'student@example.com'}</div>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -165,7 +166,13 @@ const StudentDashboard = () => {
                     <button
                       key={tab.id}
                       data-tab={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => {
+                        if (tab.id === "exams" && activeTab === "exams") {
+                          setExamsResetTrigger((t) => t + 1);
+                        } else {
+                          setActiveTab(tab.id);
+                        }
+                      }}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${
                         activeTab === tab.id
                           ? 'bg-gradient-to-r from-[#137952]/10 to-[#137952]/20 border border-[#137952]/30 text-[#137952]'
@@ -208,12 +215,7 @@ const StudentDashboard = () => {
                           {statsLoading ? "..." : stats.activePackages}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Avg. Score</span>
-                        <span className="font-semibold text-gray-900">
-                          {statsLoading ? "..." : stats.avgScore != null ? `${stats.avgScore}%` : "-"}
-                        </span>
-                      </div>
+                       
                     </div>
                   </div>
                 </div>
