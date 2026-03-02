@@ -84,13 +84,15 @@ const HowItWorks = () => {
           {/* Header */}
           <div className="text-center mb-14">
             <span className="inline-block px-4 py-1.5 bg-[#137952]/10 text-[#137952] text-sm font-medium rounded-full mb-4">
-              Simple Process
+            How it works 
+
             </span>
             <h2 className="text-4xl font-bold text-gray-900 mb-3">
-              How It Works
+            Your CMA Test Workflow 
+
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Step-by-step exam workflow with expert evaluation.
+            Time-bound CMA test practice designed to build real exam speed and discipline.
             </p>
           </div>
   
@@ -123,7 +125,46 @@ const HowItWorks = () => {
               </div>
             ))}
           </div>
+                    {/* Features */}
+                    <div className="grid md:grid-cols-3 gap-8 mt-10 pt-10 border-t border-gray-100">
+            <div className="text-center p-6 rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <div className="w-16 h-16 bg-[#137952]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-[#137952]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-2">Performance Analytics</h4>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Identify weak areas, accuracy, and scoring improvement.
+              </p>
+            </div>
+
+            <div className="text-center p-6 rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-2">Expert Answer Evaluation</h4>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                CMA-qualified evaluators check your paper with marks and feedback.
+              </p>
+            </div>
+
+            <div className="text-center p-6 rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806M3 12h18M9 12v6m6-6v6" />
+                </svg>
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-2">Rank & Benchmarking</h4>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                See how you perform compared to other CMA students.
+              </p>
+            </div>
+          </div>
         </div>
+        
       </section>
     );
   };

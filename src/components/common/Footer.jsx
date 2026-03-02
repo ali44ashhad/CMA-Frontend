@@ -13,9 +13,7 @@ const Footer = () => {
                 </div>
               </div>
               <p className="text-gray-400 text-sm max-w-md">
-                India's most comprehensive test series platform for Cost Accountants.
-                Join thousands of successful candidates who aced their exams with our
-                expert-curated tests and performance analytics.
+              A comprehensive test series platform for CMA students. Practice with expert-curated tests and track your performance with structured evaluation and analytics
               </p>
               
               {/* Social Links */}
@@ -48,19 +46,19 @@ const Footer = () => {
               <h4 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">Test Series</h4>
               <ul className="space-y-3">
                 <li>
-                  <a href="/foundation" className="text-gray-400 hover:text-white text-sm transition-colors ">
+                  <a href="/pricing" className="text-gray-400 hover:text-white text-sm transition-colors ">
                      
                     Foundation (Free)
                   </a>
                 </li>
                 <li>
-                  <a href="/intermediate" className="text-gray-400 hover:text-white text-sm transition-colors ">
+                <a href="/pricing" className="text-gray-400 hover:text-white text-sm transition-colors ">
                     
-                    Intermediate
+                    Intermediate (coming soon)
                   </a>
                 </li>
                 <li>
-                  <a href="/final" className="text-gray-400 hover:text-white text-sm transition-colors ">
+                  <a href="/pricing" className="text-gray-400 hover:text-white text-sm transition-colors ">
                      
                     Final
                   </a>
@@ -126,14 +124,13 @@ const Footer = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div className="text-gray-500 text-sm">
-                © 2026 CMA Test Series. All rights reserved.
+                © 2026 Cmatest. All rights reserved.
               </div>
               
               <div className="flex items-center space-x-6 mt-4 md:mt-0">
                  
                 <div className="mt-4 text-center text-gray-600 text-xs">
-              Institute of Cost Accountants of India (ICAI) syllabus based test series.
-              This is an independent test preparation platform and is not affiliated with ICAI.
+                Test series strictly based on the Institute syllabus. We are an independent preparation platform and are not affiliated with the Institute.
             </div>
                
               </div>

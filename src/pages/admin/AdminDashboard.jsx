@@ -163,7 +163,7 @@ const AdminDashboard = () => {
                     },
                     {
                       id: "topicManagement",
-                      label: "Topic Management",
+                      label: "Paper Management",
                       icon: "M4 6h16M4 10h16M4 14h10M4 18h6",
                     },
                     {
@@ -251,4 +251,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-

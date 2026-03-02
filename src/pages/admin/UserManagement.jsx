@@ -156,9 +156,10 @@ const UserManagement = ({ accessToken }) => {
                 <tr>
                   <th className="px-3 py-2 border-b text-left">Name</th>
                   <th className="px-3 py-2 border-b text-left">Email</th>
+                  <th className="px-3 py-2 border-b text-left">Phone</th>
+                  <th className="px-3 py-2 border-b text-left">Level</th>
                   <th className="px-3 py-2 border-b text-left">Role</th>
                   <th className="px-3 py-2 border-b text-left">Purchased packages</th>
-                   {/* <th className="px-3 py-2 border-b text-left">Actions</th> */}
                 </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -171,6 +172,12 @@ const UserManagement = ({ accessToken }) => {
                       </td>
                       <td className="px-3 py-2 text-gray-700 break-all">
                         {u.email}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700">
+                        {u.phone || "—"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 capitalize">
+                        {u.role === "student" && u.targetLevel ? String(u.targetLevel).charAt(0).toUpperCase() + String(u.targetLevel).slice(1) : "—"}
                       </td>
                       <td className="px-3 py-2 capitalize text-gray-700">
                         {u.role}

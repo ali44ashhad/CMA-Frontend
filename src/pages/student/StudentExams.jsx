@@ -1,5 +1,68 @@
 import React, { useEffect, useRef, useState } from "react";
+import * as pdfjsLib from "pdfjs-dist/build/pdf";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker?url";
 import { BASE_URL, STUDENT_ENDPOINTS, authedJsonFetch } from "../../api";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+function PdfCanvasViewer({ url }) {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!url) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const loadingTask = pdfjsLib.getDocument(url);
+        const pdf = await loadingTask.promise;
+        const container = containerRef.current;
+        if (!container || cancelled) return;
+        container.innerHTML = "";
+        const containerWidth = container.clientWidth || window.innerWidth || 800;
+
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+          const page = await pdf.getPage(pageNum);
+          const baseViewport = page.getViewport({ scale: 1 });
+          const scale = containerWidth / baseViewport.width;
+          const viewport = page.getViewport({ scale });
+
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          canvas.style.display = "block";
+          canvas.style.width = "100%";
+          canvas.style.height = "auto";
+          canvas.style.marginBottom = "1rem";
+
+          container.appendChild(canvas);
+
+          await page.render({ canvasContext: context, viewport }).promise;
+          if (cancelled) break;
+        }
+      } catch (e) {
+        // If PDF fails to load, we silently ignore here; parent shows error
+        // eslint-disable-next-line no-console
+        console.error("PDF render error", e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+      }
+    };
+  }, [url]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full max-h-[60vh] sm:max-h-[70vh] overflow-auto bg-white rounded-xl border border-gray-200 p-2 sm:p-3"
+    />
+  );
+}
 
 // Live countdown: endTime is Unix ms
 function useTimer(endTimeMs) {
@@ -46,13 +109,16 @@ function AttemptTimer({ startTime, durationMinutes, endTime, onExpired }) {
   );
 }
 
-function InProgressCard({ exam, onContinue }) {
+function InProgressCard({ exam, onContinue, onSubmitForEvaluation, extendedEndTime }) {
   const endTimeMs =
-    exam?.attemptStartTime && exam?.attemptTimerDuration != null
-      ? new Date(exam.attemptStartTime).getTime() +
-        exam.attemptTimerDuration * 60 * 1000
-      : null;
+    extendedEndTime != null
+      ? new Date(extendedEndTime).getTime()
+      : exam?.attemptStartTime && exam?.attemptTimerDuration != null
+        ? new Date(exam.attemptStartTime).getTime() + exam.attemptTimerDuration * 60 * 1000
+        : null;
   const timer = useTimer(endTimeMs);
+  const isPdf = (exam?.examType || "").toLowerCase() === "pdf";
+  const showSubmitForEval = isPdf && timer.isExpired && onSubmitForEvaluation;
   return (
     <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div className="flex items-center gap-3">
@@ -76,13 +142,27 @@ function InProgressCard({ exam, onContinue }) {
           </div>
         </div>
       </div>
-      <button
-        type="button"
-        onClick={() => onContinue(exam)}
-        className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm whitespace-nowrap"
-      >
-        Continue exam
-      </button>
+      <div className="flex items-center gap-2 flex-wrap">
+        {showSubmitForEval && (
+          <button
+            type="button"
+            onClick={() => onSubmitForEvaluation(exam)}
+            className="px-5 py-2.5 bg-gradient-to-r from-[#137952] to-[#0d5c3d] text-white font-semibold rounded-xl hover:from-[#0d5c3d] hover:to-[#0a4a2e] transition-all shadow-sm whitespace-nowrap inline-flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Submit for evaluation
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => onContinue(exam)}
+          className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm whitespace-nowrap"
+        >
+          Continue exam
+        </button>
+      </div>
     </div>
   );
 }
@@ -113,15 +193,29 @@ function Breadcrumb({ levelName, packageName, onGoToLevels, onGoToPackages }) {
 }
 
 // ---- Level list (3 cards: Foundation, Intermediate, Final) ----
-function LevelList({ onSelectLevel }) {
-  const levels = [
+function LevelList({ onSelectLevel, accessibleLevelIds = [] }) {
+  const allLevels = [
     { id: "foundation", label: "Foundation", desc: "Foundation level exams", gradient: "from-emerald-500 to-emerald-600" },
     { id: "intermediate", label: "Intermediate", desc: "Intermediate level packages & exams", gradient: "from-[#137952]/90 to-[#0d5c3d]" },
     { id: "final", label: "Final", desc: "Final level packages & exams", gradient: "from-purple-500 to-purple-600" },
   ];
+  const levels = accessibleLevelIds.length > 0
+    ? allLevels.filter((lv) => accessibleLevelIds.includes(lv.id))
+    : [];
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-      {levels.map((lv) => (
+      {levels.length === 0 ? (
+        <div className="sm:col-span-3 bg-white rounded-2xl border border-gray-200 p-12 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Packages Purchased</h3>
+          <p className="text-sm text-gray-600 max-w-md mx-auto">Purchase a package to access exams. Visit the Pricing page to get started.</p>
+        </div>
+      ) : (
+        levels.map((lv) => (
         <button
           key={lv.id}
           type="button"
@@ -140,7 +234,8 @@ function LevelList({ onSelectLevel }) {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
           </span>
         </button>
-      ))}
+      )))
+      }
     </div>
   );
 }
@@ -342,7 +437,10 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [mcqSubmitted, setMcqSubmitted] = useState(false);
   const [pdfSubmittedLocal, setPdfSubmittedLocal] = useState(false);
+  const [noExtensionsAvailable, setNoExtensionsAvailable] = useState(false);
+  const [pendingPdfSubmit, setPendingPdfSubmit] = useState(false);
   const pdfFileInputRef = useRef(null);
+  const pdfContainerRef = useRef(null);
 
   const [examError, setExamError] = useState("");
   const [examMessage, setExamMessage] = useState("");
@@ -459,6 +557,8 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
     );
   })();
 
+  const accessibleLevelIds = [...new Set((accessiblePackages || []).map((p) => String(p.level).toLowerCase()))];
+
   const examsForSelectedPackage = (() => {
     if (!selectedPackage || !exams.length || !topicsForSelectedPackage.length) return [];
     const topicIds = new Set(topicsForSelectedPackage.map((t) => String(t._id)));
@@ -541,11 +641,18 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
       setPdfSubmittedLocal(data?.status === "submitted" || !!data?.submittedPdfUrl);
     } catch (e) {
       setExamError(e.message || "Failed to load attempt");
+      setPendingPdfSubmit(false);
     }
   };
 
   const handleContinueAttempt = (exam) => {
     if (exam?.attemptId) handleLoadAttempt(exam.attemptId);
+  };
+
+  const handleStartPdfSubmit = (exam) => {
+    if (!exam?.attemptId) return;
+    setPendingPdfSubmit(true);
+    handleLoadAttempt(exam.attemptId);
   };
 
   const handleSaveAnswer = async (questionId, selectedOption) => {
@@ -626,15 +733,52 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
       if (data?.newEndTime) {
         setAttemptDetails((prev) => (prev ? { ...prev, endTime: data.newEndTime } : prev));
       }
+      if (typeof data?.extensionsRemaining === "number" && data.extensionsRemaining <= 0) {
+        setNoExtensionsAvailable(true);
+      }
       setExamMessage(`⏰ Time extended. New deadline: ${data?.newEndTime ? new Date(data.newEndTime).toLocaleString() : ""}`);
     } catch (e) {
       setExamError(e.message || "Failed to extend time");
+      if ((e.message || "").toLowerCase().includes("no extensions available")) {
+        setNoExtensionsAvailable(true);
+      }
     }
   };
 
+  const handleOpenPdfFullscreen = () => {
+    const el = pdfContainerRef.current;
+    if (!el) return;
+    if (el.requestFullscreen) {
+      el.requestFullscreen();
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+    } else if (el.msRequestFullscreen) {
+      el.msRequestFullscreen();
+    }
+  };
+
+  const isPdfExam = (attemptDetails?.examType || "").toLowerCase() === "pdf";
+  const pdfSubmitted = isPdfExam && (pdfSubmittedLocal || attemptDetails?.status === "submitted" || !!attemptDetails?.submittedPdfUrl);
+
+  useEffect(() => {
+    if (!pendingPdfSubmit) return;
+    if (!attemptDetails) return;
+    if (!isPdfExam || pdfSubmitted) {
+      setPendingPdfSubmit(false);
+      return;
+    }
+    if (typeof window !== "undefined") {
+      const el = document.getElementById("pdf-submit-section");
+      if (el && el.scrollIntoView) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+    setPendingPdfSubmit(false);
+  }, [pendingPdfSubmit, attemptDetails, isPdfExam, pdfSubmitted]);
+
   const handleForfeit = async () => {
     if (!attemptIdInput) return;
-    if (!window.confirm("Are you sure you want to forfeit? This cannot be undone.")) return;
+    if (!window.confirm("Are you sure you want to forfeit? You may re-attend the exam.")) return;
     try {
       setExamError("");
       await authedFetch(STUDENT_ENDPOINTS.FORFEIT_EXAM(attemptIdInput), { method: "DELETE" });
@@ -646,18 +790,20 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
     }
   };
 
-  const isPdfExam = (attemptDetails?.examType || "").toLowerCase() === "pdf";
-  const pdfSubmitted = isPdfExam && (pdfSubmittedLocal || attemptDetails?.status === "submitted" || !!attemptDetails?.submittedPdfUrl);
-
-  // Compute attempt end time (for expiry check): endTime from server, or startTime + duration
-  const attemptEndTimeMs =
-    attemptDetails?.endTime != null
-      ? new Date(attemptDetails.endTime).getTime()
-      : attemptDetails?.startTime != null &&
-          (attemptDetails?.duration != null || attemptDetails?.timerDuration != null)
-        ? new Date(attemptDetails.startTime).getTime() +
-          Number(attemptDetails.duration ?? attemptDetails.timerDuration ?? 0) * 60 * 1000
-        : null;
+  // Compute attempt end time (for expiry check): endTime from server (authoritative), or startTime + duration
+  const attemptEndTimeMs = (() => {
+    if (attemptDetails?.endTime != null) {
+      const t = new Date(attemptDetails.endTime).getTime();
+      return Number.isNaN(t) ? null : t;
+    }
+    const start = attemptDetails?.startTime ?? attemptDetails?.attemptStartTime;
+    const dur = attemptDetails?.duration ?? attemptDetails?.timerDuration ?? attemptDetails?.attemptTimerDuration;
+    if (start != null && dur != null) {
+      const startMs = new Date(start).getTime();
+      return Number.isNaN(startMs) ? null : startMs + Number(dur) * 60 * 1000;
+    }
+    return null;
+  })();
   const { isExpired: timeExpired } = useTimer(attemptEndTimeMs ?? 0);
   const attemptTimeExpired = attemptEndTimeMs != null && timeExpired;
 
@@ -721,7 +867,10 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
       ) : (
         <>
           {view === "levels" && (
-            <LevelList onSelectLevel={handleSelectLevel} />
+            <LevelList
+              onSelectLevel={handleSelectLevel}
+              accessibleLevelIds={accessibleLevelIds}
+            />
           )}
           {view === "packages" && (
             <PackageList
@@ -855,7 +1004,7 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">Exam Attempt</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Exam Attempted</h3>
         </div>
 
         <div className="space-y-4">
@@ -865,7 +1014,17 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
               {exams
                 .filter((e) => (e.attemptStatus === "in_progress" || e.attemptStatus === "in-progress") && e.attemptId && !(mcqSubmitted && String(e.attemptId) === String(attemptIdInput)))
                 .map((exam) => (
-                  <InProgressCard key={exam.attemptId} exam={exam} onContinue={handleContinueAttempt} />
+                  <InProgressCard
+                    key={exam.attemptId}
+                    exam={exam}
+                    onContinue={handleContinueAttempt}
+                    onSubmitForEvaluation={handleStartPdfSubmit}
+                    extendedEndTime={
+                      attemptDetails && String(exam.attemptId) === String(attemptIdInput)
+                        ? attemptDetails.endTime
+                        : null
+                    }
+                  />
                 ))}
             </div>
           )}
@@ -929,7 +1088,7 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
                     })}
                   </div>
                 </div>
-                <div className="flex justify-center pt-2">
+                <div className="flex justify-center pt-2"> 
                   <button type="button" onClick={handleSubmitMcq} disabled={mcqSubmitted || attemptTimeExpired}
                     className={`px-8 py-3 font-semibold rounded-xl transition-all shadow-lg flex items-center gap-2 ${mcqSubmitted || attemptTimeExpired ? "bg-gray-400 text-white cursor-not-allowed" : "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700"}`}>
                     {mcqSubmitted ? <><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg> Submitted</> : attemptTimeExpired ? <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Time expired</> : <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Submit MCQ Exam</>}
@@ -953,39 +1112,73 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
                     <span className="font-semibold text-red-800">Time expired</span>
                   </div>
                 ) : (
-                  <AttemptTimer startTime={attemptDetails.startTime} durationMinutes={attemptDetails.duration} endTime={attemptDetails.endTime} />
+                  <AttemptTimer startTime={attemptDetails.startTime} durationMinutes={attemptDetails.duration ?? attemptDetails.timerDuration} endTime={attemptDetails.endTime} />
                 )}
               </div>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <h4 className="font-semibold text-gray-900 mb-2">Question paper (PDF)</h4>
-                <p className="text-sm text-gray-600 mb-3">View the question paper below. Write answers on paper, then scan and upload the answer sheet PDF before time ends.</p>
-                <a href={attemptDetails.questionPaperUrl.startsWith("http") ? attemptDetails.questionPaperUrl : `${typeof window !== "undefined" ? window.location.origin : ""}/api/v1${attemptDetails.questionPaperUrl.startsWith("/") ? "" : "/"}${attemptDetails.questionPaperUrl}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#137952] text-white font-medium hover:bg-[#0d5c3d] mb-4">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                  Open question paper (PDF)
-                </a>
-                <div className="rounded-lg border border-gray-200 bg-white overflow-hidden" style={{ minHeight: "480px" }}>
-                  <iframe title="Question paper PDF" src={attemptDetails.questionPaperUrl.startsWith("http") ? attemptDetails.questionPaperUrl : `${typeof window !== "undefined" ? window.location.origin : ""}/api/v1${attemptDetails.questionPaperUrl.startsWith("/") ? "" : "/"}${attemptDetails.questionPaperUrl}`} className="w-full h-[500px]" />
+              {/* PDF viewer: hidden when time expired */}
+              {!attemptTimeExpired && (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <h4 className="font-semibold text-gray-900 mb-2">Question paper (PDF)</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    View the question paper below. Write answers on paper, then scan and upload the answer sheet PDF before time ends.
+                  </p>
+                  <div ref={pdfContainerRef}>
+                    <PdfCanvasViewer
+                      url={attemptDetails.questionPaperUrl.startsWith("http")
+                        ? attemptDetails.questionPaperUrl
+                        : `${typeof window !== "undefined" ? window.location.origin : ""}/api/v1${attemptDetails.questionPaperUrl.startsWith("/") ? "" : "/"}${attemptDetails.questionPaperUrl}`}
+                    />
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-3 justify-between">
+                    <p className="text-xs text-gray-500">
+                      You can scroll to see all pages of the question paper.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleOpenPdfFullscreen}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#137952] text-white text-xs font-semibold hover:bg-[#0d5c3d] shadow-sm hover:shadow-md transition-all"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 3h8a2 2 0 012 2v4m0 0l-4-4m4 4l-4 4m-2 4H8a2 2 0 01-2-2v-4" />
+                      </svg>
+                      View in full screen
+                    </button>
+                  </div>
                 </div>
-                {/* Submit PDF exam: upload = submit; hide when time expired */}
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Submit your exam</h4>
-                  {pdfSubmitted ? (
-                    <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-100 border border-emerald-200 text-emerald-800 font-medium">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                      Answer sheet submitted
-                    </div>
-                  ) : attemptTimeExpired ? (
-                    <p className="text-sm text-red-600 font-medium">Time expired. You can no longer submit the answer sheet.</p>
-                  ) : (
-                    <>
-                      <p className="text-sm text-gray-600 mb-3">Upload your answer sheet (PDF) to submit the exam. This will finalize your submission.</p>
+              )}
+              {/* Submit PDF exam: before expiry = upload area; after expiry = Extend + Submit for evaluation */}
+              <div id="pdf-submit-section" className="mt-6 pt-4 border-t border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-900 mb-2">Submit your exam</h4>
+                {pdfSubmitted ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-100 border border-emerald-200 text-emerald-800 font-medium">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                    Answer sheet submitted
+                  </div>
+                ) : attemptTimeExpired ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      {noExtensionsAvailable
+                        ? "No extensions available. Please submit your answer sheet for evaluation."
+                        : "Time expired. You can either extend time to continue or submit your answer sheet for evaluation."}
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {!noExtensionsAvailable && (
+                        <button
+                          type="button"
+                          onClick={handleExtendTime}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all shadow-lg"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          Extend time
+                        </button>
+                      )}
                       <input
                         ref={pdfFileInputRef}
                         type="file"
                         accept="application/pdf"
                         onChange={(e) => e.target.files?.[0] && handleUploadPdf(e.target.files[0])}
                         className="hidden"
-                        id="pdf-upload"
+                        id="pdf-upload-expired"
                       />
                       <button
                         type="button"
@@ -995,16 +1188,39 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                         </svg>
-                        Upload answer sheet & submit exam
+                        Submit for evaluation
                       </button>
-                    </>
-                  )}
-                </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-600 mb-3">Upload your answer sheet (PDF) to submit the exam. This will finalize your submission.</p>
+                    <input
+                      ref={pdfFileInputRef}
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => e.target.files?.[0] && handleUploadPdf(e.target.files[0])}
+                      className="hidden"
+                      id="pdf-upload"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => pdfFileInputRef.current?.click()}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#137952] to-[#0d5c3d] text-white font-semibold rounded-xl hover:from-[#0d5c3d] hover:to-[#0a4a2e] transition-all shadow-lg"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      Submit for evaluation
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
 
-          {attemptIdInput && (
+          {/* Extend/Forfeit (MCQ only): Extend only after expiry; Forfeit only before expiry. PDF actions handled in PDF block. */}
+          {attemptIdInput && !isPdfExam && (
             <div className="mt-6 pt-6 border-t border-gray-200">
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                 {isPdfExam && !pdfSubmitted && !attemptTimeExpired && (
@@ -1015,15 +1231,19 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
                     </label>
                   </div>
                 )}
-                {!attemptTimeExpired && (
+                {attemptTimeExpired && !noExtensionsAvailable && (
                   <div className="flex gap-2">
                     <button onClick={handleExtendTime} className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-medium rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all shadow-sm flex items-center gap-2">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      Extend Time
+                      Extend time
                     </button>
+                  </div>
+                )}
+                {!attemptTimeExpired && (
+                  <div className="flex gap-2">
                     <button onClick={handleForfeit} className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg hover:from-red-700 hover:to-red-800 transition-all shadow-sm flex items-center gap-2">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                      Forfeit Exam
+                      Forfeit exam
                     </button>
                   </div>
                 )}

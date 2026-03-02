@@ -52,6 +52,11 @@ const ExamManagement = ({ accessToken }) => {
     marks: 1,
   });
 
+  /** Only active topics (exclude archived) for exam create/edit dropdowns */
+  const activeTopics = topics.filter(
+    (t) => (t.status || "active").toString().toLowerCase() === "active"
+  );
+
   const addQuestion = () => {
     setQuestions((prev) => [...prev, emptyQuestion()]);
   };
@@ -80,7 +85,7 @@ const ExamManagement = ({ accessToken }) => {
         const list = data.items || data;
         setTopics(Array.isArray(list) ? list : []);
       } catch (e) {
-        console.error("Load topics for exam management failed", e);
+        console.error("Load papers for exam management failed", e);
       }
     };
     if (accessToken) {
@@ -175,7 +180,7 @@ const ExamManagement = ({ accessToken }) => {
                   <th className="px-3 py-2 border-b text-left">Year</th>
                   <th className="px-3 py-2 border-b text-left">Type</th>
                   <th className="px-3 py-2 border-b text-left">Max Marks</th>
-                  <th className="px-3 py-2 border-b text-left">Topic</th>
+                  <th className="px-3 py-2 border-b text-left">Paper</th>
                   <th className="px-3 py-2 border-b text-left">Duration</th>
                   <th className="px-3 py-2 border-b text-center w-28">
                     Actions
@@ -345,7 +350,7 @@ const ExamManagement = ({ accessToken }) => {
                         value={editForm.level}
                         onChange={(e) => {
                           const newLevel = e.target.value;
-                          const currentTopic = topics.find((t) => t._id === editForm.topicId);
+                          const currentTopic = activeTopics.find((t) => t._id === editForm.topicId);
                           const topicStillValid = currentTopic && (currentTopic.level || "").toLowerCase() === newLevel;
                           setEditForm((f) => ({
                             ...f,
@@ -377,14 +382,14 @@ const ExamManagement = ({ accessToken }) => {
                 </div>
               </div>
               <div>
-                <label className="block text-gray-700 font-medium mb-1">Topic</label>
+                <label className="block text-gray-700 font-medium mb-1">Paper</label>
                 <select
                   value={editForm.topicId}
                   onChange={(e) => setEditForm((f) => ({ ...f, topicId: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 >
-                  <option value="">Select topic</option>
-                  {topics
+                  <option value="">Select paper</option>
+                  {activeTopics
                     .filter((t) => (t.level || "").toLowerCase() === (editForm.level || "").toLowerCase())
                     .map((t) => (
                       <option key={t._id} value={t._id}>{t.name}</option>
@@ -503,7 +508,7 @@ const ExamManagement = ({ accessToken }) => {
                     setExamError("");
                     setExamMessage("");
                     if (!mcqForm.name || !mcqForm.topicId) {
-                      setExamError("Name and topic are required.");
+                      setExamError("Name and paper are required.");
                       return;
                     }
                     const valid = questions.filter((q) => q.questionText.trim());
@@ -575,14 +580,14 @@ const ExamManagement = ({ accessToken }) => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-gray-700 font-medium mb-1">Topic</label>
+                    <label className="block text-gray-700 font-medium mb-1">Paper</label>
                     <select
                       value={mcqForm.topicId}
                       onChange={(e) => setMcqForm((f) => ({ ...f, topicId: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                     >
-                      <option value="">Select topic</option>
-                      {topics
+                      <option value="">Select paper</option>
+                      {activeTopics
                         .filter((t) => (t.level || "").toLowerCase() === "foundation")
                         .map((t) => (
                           <option key={t._id} value={t._id}>{t.name}</option>
@@ -781,7 +786,7 @@ const ExamManagement = ({ accessToken }) => {
                         value={pdfExamForm.level}
                         onChange={(e) => {
                           const newLevel = e.target.value;
-                          const currentTopic = topics.find((t) => t._id === pdfExamForm.topicId);
+                          const currentTopic = activeTopics.find((t) => t._id === pdfExamForm.topicId);
                           const topicStillValid = currentTopic && (currentTopic.level || "").toLowerCase() === newLevel;
                           setPdfExamForm((f) => ({
                             ...f,
@@ -808,22 +813,22 @@ const ExamManagement = ({ accessToken }) => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-gray-700 font-medium mb-1">Topic <span className="text-red-500">*</span></label>
+                    <label className="block text-gray-700 font-medium mb-1">paper <span className="text-red-500">*</span></label>
                     <select
                       value={pdfExamForm.topicId}
                       onChange={(e) => setPdfExamForm((f) => ({ ...f, topicId: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       required
                     >
-                      <option value="">Select topic</option>
-                      {topics
+                      <option value="">Select paper</option>
+                      {activeTopics
                         .filter((t) => (t.level || "").toLowerCase() === (pdfExamForm.level || "").toLowerCase())
                         .map((t) => (
                           <option key={t._id} value={t._id}>{t.name}</option>
                         ))}
                     </select>
-                    {topics.filter((t) => (t.level || "").toLowerCase() === (pdfExamForm.level || "").toLowerCase()).length === 0 && (
-                      <p className="text-sm text-amber-600 mt-1">No topics yet. Create a topic under Topic Management first.</p>
+                    {activeTopics.filter((t) => (t.level || "").toLowerCase() === (pdfExamForm.level || "").toLowerCase()).length === 0 && (
+                      <p className="text-sm text-amber-600 mt-1">No papers yet. Create a paper under Paper Management first.</p>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-3">

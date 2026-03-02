@@ -11,6 +11,7 @@ const Register = () => {
     email: "",
     phone: "",
     password: "",
+    targetLevel: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -121,6 +122,22 @@ const Register = () => {
                 placeholder="9876543210"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#137952]/30 focus:border-[#137952] transition"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Target level</label>
+              <select
+                name="targetLevel"
+                value={form.targetLevel}
+                onChange={handleChange}
+                required
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#137952]/30 focus:border-[#137952] transition"
+              >
+                <option value="">Select level</option>
+                <option value="foundation">Foundation</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="final">Final</option>
+              </select>
             </div>
 
             <div>

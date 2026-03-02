@@ -1,18 +1,17 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const CTA = () => {
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuth();
+    const userRole = user?.role || "";
 
-    const handleStartTest = () => {
-        if (!isAuthenticated || !user) {
-            navigate("/login");
-            return;
-        }
-        if (user.role === "admin") navigate("/admin/dashboard");
-        else if (user.role === "evaluator") navigate("/evaluator/dashboard");
-        else navigate("/student/dashboard");
+    const getJourneyPath = () => {
+        if (!isAuthenticated) return "/register";
+        if (userRole === "student") return "/student/dashboard";
+        if (userRole === "admin") return "/admin/dashboard";
+        if (userRole === "evaluator") return "/evaluator/dashboard";
+        return "/login";
     };
 
     return (
@@ -51,75 +50,31 @@ const CTA = () => {
   
           {/* Subtitle */}
           <p className="text-xl text-white/90 max-w-3xl mx-auto mb-14">
-            Comprehensive test series with
-            <span className="text-white font-semibold"> AI analytics</span>,
-            <span className="text-white font-semibold"> expert evaluation</span> &
-            <span className="text-white font-semibold"> personalized feedback</span>.
+            A CMA-dedicated test series combining real exam simulation, exam-aligned practice papers, and fast expert evaluation.
           </p>
-  
-          {/* STATS → CARDS */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-14">
-            {[
-              { value: "100%", label: "Free Foundation" },
-              { value: "94%", label: "Success Rate" },
-              { value: "48h", label: "Evaluation Time" },
-              { value: "24/7", label: "Expert Support" },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className="bg-white/10 backdrop-blur rounded-2xl border border-white/20 p-6"
-              >
-                <div className="text-3xl font-bold text-white mb-1">
-                  {item.value}
-                </div>
-                <div className="text-sm text-white/80">{item.label}</div>
-              </div>
-            ))}
-          </div>
-  
+
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row justify-center gap-6 mb-16">
+          <div className="flex flex-col sm:flex-row justify-center gap-6">
             <button
               type="button"
-              onClick={handleStartTest}
+              onClick={() => navigate(getJourneyPath())}
               className="px-10 py-5 bg-white text-[#137952] font-bold text-lg rounded-xl shadow-xl hover:-translate-y-1 transition"
             >
-              Start Free Foundation Test
+              {isAuthenticated ? "Go to my dashboard" : "Start Your Journey"}
             </button>
+            <Link
+              to="/pricing"
+              className="inline-flex items-center justify-center px-10 py-5 bg-white/10 border-2 border-white text-white font-bold text-lg rounded-xl hover:bg-white/20 transition"
+            >
+              Check pricing
+            </Link>
+            <Link
+              to="/contact"
+              className="inline-flex items-center justify-center px-10 py-5 bg-transparent border-2 border-white text-white font-bold text-lg rounded-xl hover:bg-white/10 transition"
+            >
+              Contact us
+            </Link>
           </div>
-  
-          {/* TRUST CARD */}
-          <div className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-8 max-w-3xl mx-auto mb-16">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-              <div className="text-left">
-                <h4 className="text-white font-semibold mb-1">
-                  No Credit Card Required
-                </h4>
-                <p className="text-white/80 text-sm">
-                  Start free. Upgrade anytime as you progress.
-                </p>
-              </div>
-  
-              <div className="flex items-center gap-4 text-white">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">₹0</div>
-                  <div className="text-xs text-white/80">Foundation</div>
-                </div>
-                <span>→</span>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">₹8,999</div>
-                  <div className="text-xs text-white/80">Intermediate</div>
-                </div>
-                <span>→</span>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">₹12,999</div>
-                  <div className="text-xs text-white/80">Final</div>
-                </div>
-              </div>
-            </div>
-          </div>
-   
-          
         </div>
   
 <div className="absolute bottom-0 left-0 right-0">

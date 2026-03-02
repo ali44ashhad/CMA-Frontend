@@ -65,7 +65,7 @@ const TopicManagement = ({ accessToken }) => {
       const list = Array.isArray(data) ? data : data?.items || data?.topics || [];
       setTopics(list);
     } catch (e) {
-      console.error("Topic management error:", e);
+      console.error("Paper management error:", e);
     } finally {
       setLoading(false);
     }
@@ -204,10 +204,10 @@ const TopicManagement = ({ accessToken }) => {
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Topic Management
+            Paper Management
           </h2>
           <p className="text-xs text-gray-500">
-            All topics in one view. Edit or archive directly from each row.
+            All papers in one view. Edit or archive directly from each row.
           </p>
         </div>
         <button
