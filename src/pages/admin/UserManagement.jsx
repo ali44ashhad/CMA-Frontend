@@ -67,6 +67,68 @@ const UserManagement = ({ accessToken }) => {
   const totalStudents = users.filter((u) => u.role === "student").length;
   const totalEvaluators = users.filter((u) => u.role === "evaluator").length;
 
+  const downloadStudentsCsv = () => {
+    const students = users.filter((u) => u.role === "student");
+    if (!students.length) {
+      window.alert("No student records to download.");
+      return;
+    }
+
+    const escapeCsv = (value) => {
+      if (value == null) return "";
+      const str = String(value);
+      if (/[",\n]/.test(str)) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const headers = [
+      "Name",
+      "Email",
+      "Phone",
+      "Level",
+      "Purchased Packages",
+    ];
+
+    const rows = students.map((u) => {
+      const level =
+        u.role === "student" && u.targetLevel
+          ? String(u.targetLevel).charAt(0).toUpperCase() +
+            String(u.targetLevel).slice(1)
+          : "";
+      const packages =
+        (userPackagesMap[u._id] && userPackagesMap[u._id].join("; ")) || "";
+
+      return [
+        escapeCsv(u.name || ""),
+        escapeCsv(u.email || ""),
+        escapeCsv(u.phone || ""),
+        escapeCsv(level),
+        escapeCsv(packages),
+      ];
+    });
+
+    const csvLines = [
+      headers.map(escapeCsv).join(","),
+      ...rows.map((row) => row.join(",")),
+    ];
+    const csvContent = csvLines.join("\r\n");
+
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const today = new Date().toISOString().slice(0, 10);
+    link.download = `students-${today}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -79,32 +141,56 @@ const UserManagement = ({ accessToken }) => {
             View all users, filter by role and onboard new evaluators.
           </p>
         </div>
-        <div className="inline-flex rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden text-xs">
+        <div className="flex items-center gap-3">
+          <div className="inline-flex rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden text-xs">
+            <button
+              onClick={() => setUserFilter("all")}
+              className={`px-3 py-1.5 ${
+                userFilter === "all" ? "bg-[#137952] text-white" : "bg-white"
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setUserFilter("students")}
+              className={`px-3 py-1.5 border-l border-gray-200 ${
+                userFilter === "students"
+                  ? "bg-[#137952] text-white"
+                  : "bg-white"
+              }`}
+            >
+              Students
+            </button>
+            <button
+              onClick={() => setUserFilter("evaluators")}
+              className={`px-3 py-1.5 border-l border-gray-200 ${
+                userFilter === "evaluators"
+                  ? "bg-[#137952] text-white"
+                  : "bg-white"
+              }`}
+            >
+              Evaluators
+            </button>
+          </div>
           <button
-            onClick={() => setUserFilter("all")}
-            className={`px-3 py-1.5 ${
-              userFilter === "all" ? "bg-[#137952] text-white" : "bg-white"
-            }`}
+            type="button"
+            onClick={downloadStudentsCsv}
+            className="inline-flex items-center px-3 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 shadow-sm"
           >
-            All
-          </button>
-          <button
-            onClick={() => setUserFilter("students")}
-            className={`px-3 py-1.5 border-l border-gray-200 ${
-              userFilter === "students" ? "bg-[#137952] text-white" : "bg-white"
-            }`}
-          >
-            Students
-          </button>
-          <button
-            onClick={() => setUserFilter("evaluators")}
-            className={`px-3 py-1.5 border-l border-gray-200 ${
-              userFilter === "evaluators"
-                ? "bg-[#137952] text-white"
-                : "bg-white"
-            }`}
-          >
-            Evaluators
+            <svg
+              className="w-3.5 h-3.5 mr-1.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              />
+            </svg>
+            Download students (.csv)
           </button>
         </div>
       </div>

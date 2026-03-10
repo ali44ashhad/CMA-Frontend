@@ -69,6 +69,7 @@ const HowItWorks = () => {
     ];
   
     const gradients = {
+      green: "from-[#137952]/80 to-[#137952]",
       blue: "from-[#137952]/80 to-[#137952]",
       emerald: "from-emerald-500 to-emerald-600",
       purple: "from-purple-500 to-purple-600",
@@ -154,7 +155,12 @@ const HowItWorks = () => {
             <div className="text-center p-6 rounded-2xl border border-gray-100 bg-white shadow-sm">
               <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806M3 12h18M9 12v6m6-6v6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 19h4v-6H4v6zm6 0h4v-9h-4v9zm6 0h4v-12h-4v12zM4 9l3-3 3 3m6-2l2-2 2 2"
+                  />
                 </svg>
               </div>
               <h4 className="font-semibold text-gray-900 mb-2">Rank & Benchmarking</h4>

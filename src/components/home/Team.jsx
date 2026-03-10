@@ -21,10 +21,19 @@ const Team = () => {
  
       }, 
     ];
-   
-  
+
+    const getInitials = (name = "") => {
+      const trimmed = name.trim().replace(/\s+/g, " ");
+      if (!trimmed) return "";
+      const parts = trimmed.split(" ");
+      if (parts.length === 1) {
+        return parts[0].slice(0, 2).toUpperCase();
+      }
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    };
+
     return (
-      <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
+      <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-16">
@@ -56,7 +65,7 @@ const Team = () => {
                   <div className="flex flex-col items-center text-center">
                     {/* Avatar */}
                     <div className={`w-24 h-24 ${member.color === 'blue' ? 'bg-gradient-to-br from-[#137952]/80 to-[#137952]' : member.color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : member.color === 'emerald' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' : member.color === 'pink' ? 'bg-gradient-to-br from-pink-500 to-pink-600' : member.color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' : 'bg-gradient-to-br from-indigo-500 to-indigo-600'} rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4`}>
-                      {member.avatar}
+                      {getInitials(member.name)}
                     </div>
   
                     {/* Name & Role */}

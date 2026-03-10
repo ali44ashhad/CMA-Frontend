@@ -17,30 +17,7 @@ const AboutCompany = () => {
             We are India&apos;s leading platform dedicated to helping CMA students conquer their exams
             through innovative technology, expert guidance, and comprehensive test series.
           </p>
-        </div>
-
-        {/* Stats Banner */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 lg:p-8 mb-16">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="text-center p-4">
-              <div className="text-3xl lg:text-4xl font-bold text-[#137952] mb-2">5+</div>
-              <div className="text-sm text-gray-600 font-medium">Years Experience</div>
-            </div>
-            <div className="text-center p-4">
-              <div className="text-3xl lg:text-4xl font-bold text-[#137952] mb-2">25K+</div>
-              <div className="text-sm text-gray-600 font-medium">Mock Tests Taken</div>
-            </div>
-            <div className="text-center p-4">
-              <div className="text-3xl lg:text-4xl font-bold text-[#137952] mb-2">94%</div>
-              <div className="text-sm text-gray-600 font-medium">Success Rate</div>
-            </div>
-            <div className="text-center p-4">
-              <div className="text-3xl lg:text-4xl font-bold text-[#137952] mb-2">50+</div>
-              <div className="text-sm text-gray-600 font-medium">Cities Served</div>
-            </div>
-          </div>
-        </div>
-
+        </div> 
         {/* Mission & Vision + Right Box */}
         <div className="grid lg:grid-cols-2 gap-12 items-center mb-20">
           {/* Left Content */}

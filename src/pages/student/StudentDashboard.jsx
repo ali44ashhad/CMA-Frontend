@@ -10,7 +10,13 @@ const StudentDashboard = () => {
   const { user, accessToken, updateUser, changePassword, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [examsResetTrigger, setExamsResetTrigger] = useState(0);
-  const [stats, setStats] = useState({ testsTaken: 0, activePackages: 0, avgScore: null });
+  const [stats, setStats] = useState({
+    testsTaken: 0,
+    activePackages: 0,
+    avgScore: null,
+    pendingSubmission: 0,
+    pendingEvaluation: 0,
+  });
   const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => {
@@ -18,11 +24,30 @@ const StudentDashboard = () => {
     const loadStats = async () => {
       try {
         setStatsLoading(true);
-        const data = await authedJsonFetch(STUDENT_ENDPOINTS.STATS, accessToken);
+        const [statsData, examsData] = await Promise.all([
+          authedJsonFetch(STUDENT_ENDPOINTS.STATS, accessToken),
+          authedJsonFetch(STUDENT_ENDPOINTS.EXAMS, accessToken).catch(() => []),
+        ]);
+
+        const examList =
+          examsData?.exams ?? examsData?.items ?? (Array.isArray(examsData) ? examsData : []);
+
+        const pendingSubmission = examList.filter(
+          (e) =>
+            e.attemptStatus === "in_progress" ||
+            e.attemptStatus === "in-progress"
+        ).length;
+
+        const pendingEvaluation = examList.filter(
+          (e) => e.attemptStatus === "submitted"
+        ).length;
+
         setStats({
-          testsTaken: data?.testsTaken ?? 0,
-          activePackages: data?.activePackages ?? 0,
-          avgScore: data?.avgScore ?? null,
+          testsTaken: statsData?.testsTaken ?? 0,
+          activePackages: statsData?.activePackages ?? 0,
+          avgScore: statsData?.avgScore ?? null,
+          pendingSubmission,
+          pendingEvaluation,
         });
       } catch (e) {
         console.error("Student stats error:", e);
@@ -87,9 +112,9 @@ const StudentDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
+    <div className="min-h-screen bg-white py-12">
       {/* Background Elements */}
-      <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-r from-[#137952]/5 to-purple-500/5 transform -skew-y-3 -translate-y-12"></div>
+      <div className="absolute top-0 left-0 right-0 h-64  transform -skew-y-3 -translate-y-12"></div>
       
       {/* Pattern Overlay */}
       <div className="absolute inset-0 opacity-[0.02]">
@@ -161,7 +186,7 @@ const StudentDashboard = () => {
                     { id: 'profile', label: 'Profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
                     { id: 'packages', label: 'Packages', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
                     { id: 'purchases', label: 'My Purchases', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
-                    { id: 'exams', label: 'Available Exams', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+                    { id: 'exams', label: 'Exam Management', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -215,7 +240,18 @@ const StudentDashboard = () => {
                           {statsLoading ? "..." : stats.activePackages}
                         </span>
                       </div>
-                       
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Pending for submission</span>
+                        <span className="font-semibold text-gray-900">
+                          {statsLoading ? "..." : stats.pendingSubmission}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Pending for evaluation</span>
+                        <span className="font-semibold text-gray-900">
+                          {statsLoading ? "..." : stats.pendingEvaluation}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

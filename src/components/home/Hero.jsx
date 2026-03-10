@@ -16,8 +16,8 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative bg-gradient-to-br from-gray-50 via-white to-[#137952]/5 overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 h-96 bg-gradient-to-r from-[#137952]/5 to-purple-500/5 transform -skew-y-3 -translate-y-20" />
+    <section className="relative bg-white overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-96 transform -skew-y-3 -translate-y-20" />
 
       <div className="absolute inset-0 opacity-[0.03]">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">

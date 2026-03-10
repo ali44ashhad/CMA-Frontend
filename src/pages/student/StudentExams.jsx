@@ -59,7 +59,7 @@ function PdfCanvasViewer({ url }) {
   return (
     <div
       ref={containerRef}
-      className="w-full max-h-[60vh] sm:max-h-[70vh] overflow-auto bg-white rounded-xl border border-gray-200 p-2 sm:p-3"
+      className="w-full max-h-screen overflow-auto bg-white rounded-xl border border-gray-200 p-2 sm:p-3"
     />
   );
 }
@@ -109,7 +109,16 @@ function AttemptTimer({ startTime, durationMinutes, endTime, onExpired }) {
   );
 }
 
-function InProgressCard({ exam, onContinue, onSubmitForEvaluation, extendedEndTime }) {
+function InProgressCard({
+  exam,
+  onContinue,
+  onSubmitForEvaluation,
+  onSubmitMcq,
+  extendedEndTime,
+  onExtend,
+  canExtend = false,
+  onForfeit,
+}) {
   const endTimeMs =
     extendedEndTime != null
       ? new Date(extendedEndTime).getTime()
@@ -118,7 +127,12 @@ function InProgressCard({ exam, onContinue, onSubmitForEvaluation, extendedEndTi
         : null;
   const timer = useTimer(endTimeMs);
   const isPdf = (exam?.examType || "").toLowerCase() === "pdf";
-  const showSubmitForEval = isPdf && timer.isExpired && onSubmitForEvaluation;
+  const isMcq = (exam?.examType || "").toLowerCase() === "mcq";
+  const isExpired = timer.isExpired;
+  const showSubmitForEval = isPdf && isExpired && onSubmitForEvaluation;
+  const showExtend = isExpired && onExtend && canExtend;
+  const showSubmitMcq = isMcq && isExpired && onSubmitMcq;
+  const showForfeit = isExpired && onForfeit;
   return (
     <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div className="flex items-center gap-3">
@@ -134,11 +148,8 @@ function InProgressCard({ exam, onContinue, onSubmitForEvaluation, extendedEndTi
           </p>
           <div className="mt-2 flex items-center gap-2">
             <span className="inline-flex items-center px-2 py-1 rounded-lg bg-amber-100 text-amber-800 text-sm font-mono font-semibold">
-              {timer.isExpired ? "Time's up" : `⏱ ${timer.formatted}`}
-            </span>
-            {timer.isExpired && (
-              <span className="text-xs text-amber-700">Submit or forfeit below</span>
-            )}
+              {isExpired ? "Time's up" : `⏱ ${timer.formatted}`}
+            </span> 
           </div>
         </div>
       </div>
@@ -155,40 +166,53 @@ function InProgressCard({ exam, onContinue, onSubmitForEvaluation, extendedEndTi
             Submit for evaluation
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => onContinue(exam)}
-          className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm whitespace-nowrap"
-        >
-          Continue exam
-        </button>
+        {showSubmitMcq && (
+          <button
+            type="button"
+            onClick={() => onSubmitMcq(exam)}
+            className="px-5 py-2.5 bg-gradient-to-r from-[#137952] to-[#0d5c3d] text-white font-semibold rounded-xl hover:from-[#0d5c3d] hover:to-[#0a4a2e] transition-all shadow-sm whitespace-nowrap inline-flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Submit MCQ
+          </button>
+        )}
+        {!isExpired && (
+          <button
+            type="button"
+            onClick={() => onContinue(exam)}
+            className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm whitespace-nowrap"
+          >
+            Continue exam
+          </button>
+        )}
+        {showExtend && (
+          <button
+            type="button"
+            onClick={() => onExtend(exam)}
+            className="px-5 py-2.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all shadow-sm whitespace-nowrap inline-flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Extend exam
+          </button>
+        )}
+        {showForfeit && (
+          <button
+            type="button"
+            onClick={() => onForfeit(exam)}
+            className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-xl hover:from-red-700 hover:to-red-800 transition-all shadow-sm whitespace-nowrap inline-flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Forfeit
+          </button>
+        )}
       </div>
     </div>
-  );
-}
-
-// ---- Breadcrumb: Level > Package > Exams ----
-function Breadcrumb({ levelName, packageName, onGoToLevels, onGoToPackages }) {
-  const parts = [];
-  if (levelName) parts.push({ label: levelName, onClick: packageName ? onGoToPackages : onGoToLevels });
-  if (packageName) parts.push({ label: packageName, onClick: null });
-  if (parts.length === 0) return null;
-  return (
-    <nav className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
-      <span className="text-gray-400">Available Exams</span>
-      {parts.map((p, i) => (
-        <span key={i} className="flex items-center gap-2">
-          <span className="text-gray-400">/</span>
-          {p.onClick ? (
-            <button type="button" onClick={p.onClick} className="hover:text-[#137952] font-medium capitalize">
-              {p.label}
-            </button>
-          ) : (
-            <span className="font-medium text-gray-900">{p.label}</span>
-          )}
-        </span>
-      ))}
-    </nav>
   );
 }
 
@@ -311,8 +335,75 @@ function PackageList({ packages, onSelectPackage, onBack }) {
   );
 }
 
-// ---- Exam list (cards) ----
-function ExamList({ exams, onDetails, onLeaderboard, onStartExam, onBack }) {
+// ---- Paper list (topics inside a package) ----
+function PaperList({ papers, onSelectPaper, onBack }) {
+  if (!papers || papers.length === 0) {
+    return (
+      <div className="space-y-4">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#137952]"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to packages
+          </button>
+        )}
+        <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No papers in this package</h3>
+          <p className="text-sm text-gray-600">There are no papers available for this package yet.</p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#137952]"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to packages
+        </button>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {papers.map((paper) => (
+          <button
+            key={paper._id}
+            type="button"
+            onClick={() => onSelectPaper(paper)}
+            className="bg-white rounded-2xl border-2 border-gray-200 p-6 text-left hover:border-[#137952]/40 hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#137952]/30"
+          >
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6M8 6h8a2 2 0 012 2v10a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2z"
+                />
+              </svg>
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-1">{paper.name}</h3>
+            <p className="text-xs text-gray-500">
+              {paper.examCount} exam{paper.examCount !== 1 ? "s" : ""}
+            </p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---- Exam list (cards inside a paper) ----
+function ExamList({ exams, onDetails, onLeaderboard, onStartExam, onContinueExam, onBack }) {
   const availableToStart = exams.filter(
     (e) => e.attemptStatus !== "submitted" && e.attemptStatus !== "evaluated"
   );
@@ -320,9 +411,15 @@ function ExamList({ exams, onDetails, onLeaderboard, onStartExam, onBack }) {
     return (
       <div className="space-y-4">
         {onBack && (
-          <button type="button" onClick={onBack} className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#137952]">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-            Back to packages
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#137952]"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to papers
           </button>
         )}
         <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
@@ -401,9 +498,25 @@ function ExamList({ exams, onDetails, onLeaderboard, onStartExam, onBack }) {
                         : "bg-gray-100 text-gray-500 border border-gray-200 cursor-not-allowed"
                     }`}
                     disabled={!exam.hasAccess}
-                    onClick={() => exam.hasAccess && onStartExam(exam._id)}
+                    onClick={() => {
+                      if (!exam.hasAccess) return;
+                      if (
+                        (exam.attemptStatus === "in_progress" ||
+                          exam.attemptStatus === "in-progress") &&
+                        exam.attemptId
+                      ) {
+                        onContinueExam && onContinueExam(exam);
+                      } else {
+                        onStartExam(exam._id);
+                      }
+                    }}
                   >
-                    {exam.hasAccess ? "Start Exam" : "Locked"}
+                    {exam.hasAccess
+                      ? exam.attemptStatus === "in_progress" ||
+                        exam.attemptStatus === "in-progress"
+                        ? "Continue exam"
+                        : "Start Exam"
+                      : "Locked"}
                   </button>
                 </div>
               </div>
@@ -423,9 +536,10 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
   const [level, setLevel] = useState("");
   const [year, setYear] = useState("");
 
-  const [view, setView] = useState("levels"); // 'levels' | 'packages' | 'exams'
+  const [view, setView] = useState("levels"); // 'levels' | 'packages' | 'papers' | 'exams'
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [selectedPaper, setSelectedPaper] = useState(null);
 
   const [examDetails, setExamDetails] = useState(null);
   const [leaderboard, setLeaderboard] = useState(null);
@@ -441,12 +555,21 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
   const [pendingPdfSubmit, setPendingPdfSubmit] = useState(false);
   const pdfFileInputRef = useRef(null);
   const pdfContainerRef = useRef(null);
+  const [attemptMetaByExamId, setAttemptMetaByExamId] = useState({});
 
   const [examError, setExamError] = useState("");
   const [examMessage, setExamMessage] = useState("");
 
   const authedFetch = (path, options = {}) =>
     authedJsonFetch(path, accessToken, options);
+
+  const scrollToSection = (sectionId) => {
+    if (typeof window === "undefined") return;
+    const el = document.getElementById(sectionId);
+    if (el && el.scrollIntoView) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   const loadData = async () => {
     if (!accessToken) return;
@@ -528,21 +651,39 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
   const accessibleExamPackageIds = new Set();
   (exams || []).forEach((e) => {
     if (!e.hasAccess) return;
-    (e.topicPackageIds || []).forEach((pid) => accessibleExamPackageIds.add(pid));
+    // Packages linked via topic -> packageIds (topicPackageIds)
+    (e.topicPackageIds || []).forEach((pid) =>
+      accessibleExamPackageIds.add(String(pid))
+    );
+    // Fallback: some backends send direct packageId on exam
+    const directPid = e.packageId?._id ?? e.packageId;
+    if (directPid) {
+      accessibleExamPackageIds.add(String(directPid));
+    }
   });
   const accessiblePackages = (packages || []).filter(
     (p) => accessibleExamPackageIds.has(String(p._id)) || purchasedPackageIds.has(String(p._id)) || String(p.level).toLowerCase() === "foundation"
   );
 
-  const topicsForSelectedPackage = (() => {
+  const papersForSelectedPackage = (() => {
     if (!selectedPackage || !exams.length) return [];
     const pkgId = String(selectedPackage._id);
     const topicMap = new Map();
     exams.forEach((e) => {
-      if (!(e.topicPackageIds || []).includes(pkgId)) return;
+      const topicPkgIds = (e.topicPackageIds || []).map(String);
+      const directPkgId = e.packageId?._id ?? e.packageId;
+      const matchesPackage =
+        topicPkgIds.includes(pkgId) ||
+        (directPkgId && String(directPkgId) === pkgId);
+      if (!matchesPackage) return;
+
       const tid = String(e.topicId);
       if (!topicMap.has(tid)) {
-        topicMap.set(tid, { _id: e.topicId, name: e.topicName || "Topic", examCount: 0 });
+        topicMap.set(tid, {
+          _id: e.topicId,
+          name: e.topicName || "Topic",
+          examCount: 0,
+        });
       }
       const t = topicMap.get(tid);
       t.examCount += 1;
@@ -559,32 +700,137 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
 
   const accessibleLevelIds = [...new Set((accessiblePackages || []).map((p) => String(p.level).toLowerCase()))];
 
-  const examsForSelectedPackage = (() => {
-    if (!selectedPackage || !exams.length || !topicsForSelectedPackage.length) return [];
-    const topicIds = new Set(topicsForSelectedPackage.map((t) => String(t._id)));
-    return exams.filter((e) => topicIds.has(String(e.topicId)));
+  const examsForSelectedPaper = (() => {
+    if (!selectedPackage || !selectedPaper || !exams.length) return [];
+    const pkgId = String(selectedPackage._id);
+    const paperId = String(selectedPaper._id);
+    return exams.filter((e) => {
+      if (String(e.topicId) !== paperId) return false;
+      const topicPkgIds = (e.topicPackageIds || []).map(String);
+      const directPkgId = e.packageId?._id ?? e.packageId;
+      const matchesPackage =
+        topicPkgIds.includes(pkgId) ||
+        (directPkgId && String(directPkgId) === pkgId);
+      return matchesPackage;
+    });
   })();
+
+  const submittedExams = exams.filter(
+    (e) => e.attemptStatus === "submitted" || e.attemptStatus === "evaluated"
+  );
+
+  const inProgressExams = exams.filter(
+    (e) =>
+      (e.attemptStatus === "in_progress" || e.attemptStatus === "in-progress") &&
+      e.attemptId,
+  );
+
+  const loadAttemptMeta = async (list) => {
+    if (!accessToken || !list || list.length === 0) {
+      setAttemptMetaByExamId({});
+      return;
+    }
+    const rows = await Promise.all(
+      list.map(async (exam) => {
+        try {
+          const a = await authedFetch(
+            STUDENT_ENDPOINTS.EXAM_ATTEMPT(String(exam.attemptId))
+          );
+          const startMs = a?.startTime ? new Date(a.startTime).getTime() : null;
+          const timerDurationMin = Number(a?.timerDuration ?? a?.duration ?? 0);
+          const extensionsUsed = Number(a?.extensionsUsed ?? 0);
+          const extensionInterval = Number(a?.extensionInterval ?? 0);
+          const derivedEndMs =
+            startMs != null && !Number.isNaN(startMs)
+              ? startMs +
+                (timerDurationMin + extensionsUsed * extensionInterval) *
+                  60 *
+                  1000
+              : null;
+          const endMs =
+            a?.endTime != null ? new Date(a.endTime).getTime() : derivedEndMs;
+          const isExpired = endMs != null ? Date.now() >= endMs : false;
+          const examType = String(
+            a?.examType || a?.examId?.examType || exam?.examType || ""
+          ).toLowerCase();
+          const extensionsAllowed = Number(a?.extensionsAllowed ?? 0);
+          const extensionsRemaining =
+            extensionsAllowed > 0 ? extensionsAllowed - extensionsUsed : 0;
+          return [
+            String(exam._id),
+            {
+              attemptId: String(exam.attemptId),
+              isExpired,
+              endMs,
+              examType,
+              extensionsRemaining,
+            },
+          ];
+        } catch (_) {
+          return [String(exam._id), null];
+        }
+      })
+    );
+    const next = {};
+    rows.forEach(([k, v]) => {
+      if (v) next[k] = v;
+    });
+    setAttemptMetaByExamId(next);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (cancelled) return;
+      await loadAttemptMeta(inProgressExams);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken, exams]);
+
+  const expiredInProgressExams = inProgressExams.filter((e) => {
+    const meta = attemptMetaByExamId[String(e._id)];
+    return !!meta?.isExpired;
+  });
+
+  const submittedLikeExams = [...submittedExams, ...expiredInProgressExams];
 
   const handleSelectLevel = (levelId) => {
     setSelectedLevel(levelId);
     setSelectedPackage(null);
+    setSelectedPaper(null);
     setView("packages");
   };
 
   const handleSelectPackage = (pkg) => {
     setSelectedPackage(pkg);
+    setSelectedPaper(null);
+    setView("papers");
+  };
+
+  const handleSelectPaper = (paper) => {
+    setSelectedPaper(paper);
     setView("exams");
   };
 
   const handleBackToLevels = () => {
     setSelectedLevel(null);
     setSelectedPackage(null);
+    setSelectedPaper(null);
     setView("levels");
   };
 
   const handleBackToPackages = () => {
+    setSelectedPaper(null);
     setSelectedPackage(null);
     setView("packages");
+  };
+
+  const handleBackToPapers = () => {
+    setSelectedPaper(null);
+    setView("papers");
   };
 
   const handleExamDetails = async (examId) => {
@@ -618,10 +864,16 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
     try {
       setExamError("");
       setExamMessage("");
-      const data = await authedFetch(STUDENT_ENDPOINTS.START_EXAM(examId), { method: "POST" });
+      const data = await authedFetch(STUDENT_ENDPOINTS.START_EXAM(examId), {
+        method: "POST",
+      });
       setAttemptDetails(data);
       setAttemptIdInput(data?.attemptId ?? data?.attempt?.attemptId ?? "");
-      setExamMessage(`Exam started! Your attempt ID: ${data?.attemptId ?? data?.attempt?.attemptId ?? ""}`);
+      setExamMessage(
+        `Exam started! Your attempt ID: ${
+          data?.attemptId ?? data?.attempt?.attemptId ?? ""
+        }`,
+      );
     } catch (e) {
       setExamError(e.message || "Failed to start exam");
     }
@@ -636,9 +888,24 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
       setAttemptIdInput(String(attemptId));
       setAttemptDetails(data);
       setCurrentQuestionIndex(0);
-      setSelectedAnswers(data?.answers && typeof data.answers === "object" ? { ...data.answers } : {});
+      const nextAnswers = (() => {
+        if (!data?.answers) return {};
+        if (Array.isArray(data.answers)) {
+          return data.answers.reduce((acc, a) => {
+            const qid = a?.questionId?._id ?? a?.questionId;
+            if (qid != null && a?.selectedOption != null) {
+              acc[String(qid)] = a.selectedOption;
+            }
+            return acc;
+          }, {});
+        }
+        if (typeof data.answers === "object") return { ...data.answers };
+        return {};
+      })();
+      setSelectedAnswers(nextAnswers);
       setMcqSubmitted(data?.attemptStatus === "submitted" || data?.attemptStatus === "evaluated");
       setPdfSubmittedLocal(data?.status === "submitted" || !!data?.submittedPdfUrl);
+      setNoExtensionsAvailable(false);
     } catch (e) {
       setExamError(e.message || "Failed to load attempt");
       setPendingPdfSubmit(false);
@@ -646,7 +913,9 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
   };
 
   const handleContinueAttempt = (exam) => {
-    if (exam?.attemptId) handleLoadAttempt(exam.attemptId);
+    if (exam?.attemptId) {
+      handleLoadAttempt(exam.attemptId);
+    }
   };
 
   const handleStartPdfSubmit = (exam) => {
@@ -681,6 +950,7 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
     setSelectedAnswers({});
     setMcqSubmitted(false);
     setPdfSubmittedLocal(false);
+    setNoExtensionsAvailable(false);
   };
 
   const handleSubmitMcq = async (options = {}) => {
@@ -725,11 +995,15 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
     }
   };
 
-  const handleExtendTime = async () => {
-    if (!attemptIdInput) return;
+  const handleExtendTime = async (attemptIdFromCard) => {
+    const effectiveAttemptId = attemptIdFromCard ?? attemptIdInput;
+    if (!effectiveAttemptId) return;
     try {
       setExamError("");
-      const data = await authedFetch(STUDENT_ENDPOINTS.EXTEND_TIME(attemptIdInput), { method: "POST" });
+      const data = await authedFetch(
+        STUDENT_ENDPOINTS.EXTEND_TIME(effectiveAttemptId),
+        { method: "POST" },
+      );
       if (data?.newEndTime) {
         setAttemptDetails((prev) => (prev ? { ...prev, endTime: data.newEndTime } : prev));
       }
@@ -737,11 +1011,21 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
         setNoExtensionsAvailable(true);
       }
       setExamMessage(`⏰ Time extended. New deadline: ${data?.newEndTime ? new Date(data.newEndTime).toLocaleString() : ""}`);
+      return data;
     } catch (e) {
       setExamError(e.message || "Failed to extend time");
       if ((e.message || "").toLowerCase().includes("no extensions available")) {
         setNoExtensionsAvailable(true);
       }
+      return null;
+    }
+  };
+
+  const extendAndOpenAttempt = async (attemptId) => {
+    if (!attemptId) return;
+    const result = await handleExtendTime(attemptId);
+    if (result) {
+      await handleLoadAttempt(attemptId);
     }
   };
 
@@ -757,8 +1041,21 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
     }
   };
 
-  const isPdfExam = (attemptDetails?.examType || "").toLowerCase() === "pdf";
-  const pdfSubmitted = isPdfExam && (pdfSubmittedLocal || attemptDetails?.status === "submitted" || !!attemptDetails?.submittedPdfUrl);
+  const toPublicFileUrl = (raw) => {
+    if (!raw) return null;
+    if (typeof raw !== "string") return null;
+    if (raw.startsWith("http")) return raw;
+    return `${BASE_URL.replace(/\/api\/v1$/, "")}${raw.startsWith("/") ? "" : "/"}${raw}`;
+  };
+
+  const attemptExamType =
+    attemptDetails?.examType || attemptDetails?.examId?.examType || "";
+  const isPdfExam = String(attemptExamType).toLowerCase() === "pdf";
+  const pdfSubmitted =
+    isPdfExam &&
+    (pdfSubmittedLocal ||
+      attemptDetails?.status === "submitted" ||
+      !!attemptDetails?.submittedPdfUrl);
 
   useEffect(() => {
     if (!pendingPdfSubmit) return;
@@ -767,24 +1064,31 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
       setPendingPdfSubmit(false);
       return;
     }
+    // Scroll to PDF submit section inside overlay
     if (typeof window !== "undefined") {
       const el = document.getElementById("pdf-submit-section");
       if (el && el.scrollIntoView) {
         el.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
+    // Automatically open the PDF file chooser when coming from "Submit for evaluation" in card
+    if (pdfFileInputRef.current && typeof pdfFileInputRef.current.click === "function") {
+      pdfFileInputRef.current.click();
+    }
     setPendingPdfSubmit(false);
   }, [pendingPdfSubmit, attemptDetails, isPdfExam, pdfSubmitted]);
 
-  const handleForfeit = async () => {
-    if (!attemptIdInput) return;
+  const handleForfeit = async (attemptIdFromCard) => {
+    const effectiveAttemptId = attemptIdFromCard ?? attemptIdInput;
+    if (!effectiveAttemptId) return;
     if (!window.confirm("Are you sure you want to forfeit? You may re-attend the exam.")) return;
     try {
       setExamError("");
-      await authedFetch(STUDENT_ENDPOINTS.FORFEIT_EXAM(attemptIdInput), { method: "DELETE" });
+      await authedFetch(STUDENT_ENDPOINTS.FORFEIT_EXAM(effectiveAttemptId), { method: "DELETE" });
       setExamMessage("⚠️ Exam forfeited.");
       setAttemptDetails(null);
       setAttemptIdInput("");
+      await loadData();
     } catch (e) {
       setExamError(e.message || "Failed to forfeit exam");
     }
@@ -808,12 +1112,14 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
   const attemptTimeExpired = attemptEndTimeMs != null && timeExpired;
 
   return (
-    <div className="space-y-6">
+    <div id="available-exams-section" className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-1">Available Exams</h2>
-          <p className="text-sm text-gray-600 mb-1">Choose a level → package → test</p>
-          
+          <h2 className="text-xl font-bold text-gray-900 mb-1">Exam Management</h2>
+         
+          <p className="text-xs text-gray-500">
+            Start with level → package → paper → exam to begin a new attempt.
+          </p>
         </div>
         <div className="flex flex-wrap items-end gap-2 bg-white p-3 rounded-xl border border-gray-200">
           <div>
@@ -879,21 +1185,74 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
               onBack={handleBackToLevels}
             />
           )}
+          {view === "papers" && (
+            <PaperList
+              papers={papersForSelectedPackage}
+              onSelectPaper={handleSelectPaper}
+              onBack={handleBackToPackages}
+            />
+          )}
           {view === "exams" && (
             <ExamList
-              exams={examsForSelectedPackage}
+              exams={examsForSelectedPaper}
               onDetails={handleExamDetails}
               onLeaderboard={handleLeaderboard}
               onStartExam={handleStartExam}
-              onBack={handleBackToPackages}
+              onContinueExam={handleContinueAttempt}
+              onBack={handleBackToPapers}
             />
           )}
         </>
       )}
 
+      {inProgressExams.length > 0 && (
+        <div className="bg-white rounded-2xl border border-amber-200 p-4 space-y-3">
+          <h1
+          className="text-2xl font-bold text-gray-900 mb-4">Exam Attempted</h1>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-amber-500 rounded-xl flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-semibold text-gray-900">Your exam in progress</h3>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {inProgressExams.map((exam) => (
+              (() => {
+                const meta = attemptMetaByExamId[String(exam._id)];
+                const canExtend = (meta?.extensionsRemaining ?? 0) > 0;
+                return (
+              <InProgressCard
+                key={exam.attemptId}
+                exam={exam}
+                onContinue={handleContinueAttempt}
+                onSubmitForEvaluation={handleStartPdfSubmit}
+                onSubmitMcq={async (ex) => {
+                  setAttemptIdInput(String(ex.attemptId));
+                  await handleSubmitMcq({ autoSubmit: true });
+                }}
+                onExtend={(ex) => extendAndOpenAttempt(ex.attemptId)}
+                canExtend={canExtend}
+                onForfeit={(ex) => handleForfeit(ex.attemptId)}
+                extendedEndTime={
+                  attemptDetails && String(exam.attemptId) === String(attemptIdInput)
+                    ? attemptDetails.endTime
+                    : null
+                }
+              />
+                );
+              })()
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Modals: Exam Details, Leaderboard */}
       {examDetails && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Exam Details</h3>
@@ -940,7 +1299,7 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
       )}
 
       {leaderboard && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
               <div>
@@ -996,47 +1355,238 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
         </div>
       )}
 
-      {/* Exam Attempt Section */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 mt-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900">Exam Attempted</h3>
-        </div>
-
-        <div className="space-y-4">
-          {exams.filter((e) => (e.attemptStatus === "in_progress" || e.attemptStatus === "in-progress") && e.attemptId && !(mcqSubmitted && String(e.attemptId) === String(attemptIdInput))).length > 0 && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-700">Your exam in progress</h4>
-              {exams
-                .filter((e) => (e.attemptStatus === "in_progress" || e.attemptStatus === "in-progress") && e.attemptId && !(mcqSubmitted && String(e.attemptId) === String(attemptIdInput)))
-                .map((exam) => (
-                  <InProgressCard
-                    key={exam.attemptId}
-                    exam={exam}
-                    onContinue={handleContinueAttempt}
-                    onSubmitForEvaluation={handleStartPdfSubmit}
-                    extendedEndTime={
-                      attemptDetails && String(exam.attemptId) === String(attemptIdInput)
-                        ? attemptDetails.endTime
-                        : null
-                    }
-                  />
-                ))}
+      {/* Submitted Exams Section (below available exams) */}
+      {submittedLikeExams.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Your submitted exams</h3>
+          <div className="rounded-xl border border-gray-200">
+            <div className="w-full overflow-x-auto">
+              <table className="w-full text-sm min-w-[420px]">
+                <thead className="bg-gray-50 text-gray-600">
+                  <tr>
+                    <th className="px-4 py-2.5 text-left font-medium">Exam</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Level</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Status</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Marks</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Remarks</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {submittedLikeExams.map((exam) => {
+                    const meta = attemptMetaByExamId[String(exam._id)];
+                    const isExpiredInProgress =
+                      (exam.attemptStatus === "in_progress" ||
+                        exam.attemptStatus === "in-progress") &&
+                      !!meta?.isExpired;
+                    const isPdf = String(exam.examType || meta?.examType || "").toLowerCase() === "pdf";
+                    const isMcq = String(exam.examType || meta?.examType || "").toLowerCase() === "mcq";
+                    const canExtend = isExpiredInProgress && (meta?.extensionsRemaining ?? 0) > 0;
+                    const answerKeyHref = toPublicFileUrl(exam.answerKeyUrl);
+                    return (
+                    <tr key={exam._id} className="hover:bg-gray-50/70">
+                      <td className="px-4 py-2.5 font-medium text-gray-900">{exam.name}</td>
+                      <td className="px-4 py-2.5 text-gray-600 capitalize">{exam.level}</td>
+                      <td className="px-4 py-2.5">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            exam.attemptStatus === "evaluated"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : isExpiredInProgress
+                                ? "bg-red-100 text-red-800"
+                                : "bg-[#137952]/20 text-[#0d5c3d]"
+                          }`}
+                        >
+                          {exam.attemptStatus === "evaluated"
+                            ? "Evaluated"
+                            : isExpiredInProgress
+                              ? "Time expired (not submitted)"
+                              : "Submitted"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium text-gray-900">
+                        {marksByExamId[exam._id] != null && !isExpiredInProgress
+                          ? `${marksByExamId[exam._id]} / ${exam.maxMarks ?? "—"}`
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-gray-600 max-w-[200px]">
+                        {exam.evaluatorRemarks && !isExpiredInProgress ? (
+                          <span title={exam.evaluatorRemarks} className="line-clamp-2 text-xs">
+                            {exam.evaluatorRemarks}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
+                          {answerKeyHref && (
+                            <a
+                              href={answerKeyHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-medium text-xs"
+                              title="Answer key"
+                            >
+                              Answer key
+                            </a>
+                          )}
+                          {isExpiredInProgress && isPdf && (
+                            <>
+                              {canExtend && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await extendAndOpenAttempt(exam.attemptId);
+                                    await loadAttemptMeta(inProgressExams);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-100 text-yellow-900 hover:bg-yellow-200 font-medium text-xs"
+                                  title="Extend time"
+                                >
+                                  Extend time
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleStartPdfSubmit(exam)}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#137952]/10 text-[#137952] hover:bg-[#137952]/20 font-medium text-xs"
+                                title="Submit for evaluation"
+                              >
+                                Submit for evaluation
+                              </button>
+                            </>
+                          )}
+                          {isExpiredInProgress && isMcq && (
+                            <>
+                              {canExtend && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await extendAndOpenAttempt(exam.attemptId);
+                                    await loadAttemptMeta(inProgressExams);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-100 text-yellow-900 hover:bg-yellow-200 font-medium text-xs"
+                                  title="Extend time"
+                                >
+                                  Extend time
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  setAttemptIdInput(String(exam.attemptId));
+                                  await handleSubmitMcq({ autoSubmit: true });
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#137952]/10 text-[#137952] hover:bg-[#137952]/20 font-medium text-xs"
+                                title="Submit MCQ"
+                              >
+                                Submit MCQ
+                              </button>
+                            </>
+                          )}
+                          {exam.attemptStatus === "evaluated" && exam.checkedPdfUrl && (
+                            <a
+                              href={
+                                exam.checkedPdfUrl.startsWith("http")
+                                  ? exam.checkedPdfUrl
+                                  : `${BASE_URL.replace(/\/api\/v1$/, "")}${
+                                      exam.checkedPdfUrl.startsWith("/") ? "" : "/"
+                                    }${exam.checkedPdfUrl}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#137952]/10 text-[#137952] hover:bg-[#137952]/20 font-medium text-xs"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                              </svg>
+                              View PDF
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleLeaderboard(exam._id)}
+                            className="text-[#137952] hover:text-[#0d5c3d] font-medium text-xs"
+                          >
+                            Leaderboard
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
+        </div>
+      )}
 
-          {attemptDetails && attemptDetails.questions && attemptDetails.questions.length > 0 && (() => {
+      {/* Exam Attempt Overlay */}
+      {attemptDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-5xl max-h-[95vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Exam in progress</h3>
+                  {attemptDetails?.examName && (
+                    <p className="text-xs text-gray-500">{attemptDetails.examName}</p>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  clearAttemptFromView();
+                  scrollToSection("available-exams-section");
+                }}
+                className="inline-flex items-center gap-1 text-xs font-medium text-gray-600 hover:text-[#137952]"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+                Close
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              {attemptDetails &&
+                attemptDetails.questions &&
+                attemptDetails.questions.length > 0 &&
+                (() => {
             const questions = attemptDetails.questions;
             const idx = Math.max(0, Math.min(currentQuestionIndex, questions.length - 1));
             const q = questions[idx];
             const qIdStr = q._id?.toString?.() ?? q._id;
             const selectedOption = selectedAnswers[qIdStr];
             return (
-              <div className="mt-6 space-y-6">
+              <div className="mt-2 space-y-6">
                 <div className="flex justify-center sm:justify-start">
                   {mcqSubmitted ? (
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-100 border border-emerald-200">
@@ -1088,18 +1638,83 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
                     })}
                   </div>
                 </div>
-                <div className="flex justify-center pt-2"> 
-                  <button type="button" onClick={handleSubmitMcq} disabled={mcqSubmitted || attemptTimeExpired}
-                    className={`px-8 py-3 font-semibold rounded-xl transition-all shadow-lg flex items-center gap-2 ${mcqSubmitted || attemptTimeExpired ? "bg-gray-400 text-white cursor-not-allowed" : "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700"}`}>
-                    {mcqSubmitted ? <><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg> Submitted</> : attemptTimeExpired ? <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Time expired</> : <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Submit MCQ Exam</>}
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      attemptTimeExpired
+                        ? handleSubmitMcq({ autoSubmit: true })
+                        : handleSubmitMcq()
+                    }
+                    disabled={mcqSubmitted}
+                    className={`px-8 py-3 font-semibold rounded-xl transition-all shadow-lg flex items-center gap-2 ${
+                      mcqSubmitted
+                        ? "bg-gray-400 text-white cursor-not-allowed"
+                        : attemptTimeExpired
+                          ? "bg-gradient-to-r from-[#137952] to-[#0d5c3d] text-white hover:from-[#0d5c3d] hover:to-[#0a4a2e]"
+                          : "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700"
+                    }`}
+                  >
+                    {mcqSubmitted ? (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>{" "}
+                        Submitted
+                      </>
+                    ) : attemptTimeExpired ? (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                          />
+                        </svg>{" "}
+                        Submit now
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>{" "}
+                        Submit MCQ Exam
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
             );
           })()}
 
-          {attemptDetails && attemptDetails.questionPaperUrl && !(attemptDetails.questions && attemptDetails.questions.length > 0) && (
-            <div className="mt-6 space-y-6">
+              {attemptDetails &&
+                isPdfExam &&
+                !(attemptDetails.questions && attemptDetails.questions.length > 0) && (
+                  <div className="mt-2 space-y-6">
               <div className="flex justify-center sm:justify-start">
                 {pdfSubmitted ? (
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-100 border border-emerald-200">
@@ -1116,7 +1731,9 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
                 )}
               </div>
               {/* PDF viewer: hidden when time expired */}
-              {!attemptTimeExpired && (
+              {!attemptTimeExpired &&
+                (attemptDetails.questionPaperUrl ||
+                  attemptDetails?.examId?.questionPaperUrl) && (
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                   <h4 className="font-semibold text-gray-900 mb-2">Question paper (PDF)</h4>
                   <p className="text-sm text-gray-600 mb-3">
@@ -1124,9 +1741,17 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
                   </p>
                   <div ref={pdfContainerRef}>
                     <PdfCanvasViewer
-                      url={attemptDetails.questionPaperUrl.startsWith("http")
-                        ? attemptDetails.questionPaperUrl
-                        : `${typeof window !== "undefined" ? window.location.origin : ""}/api/v1${attemptDetails.questionPaperUrl.startsWith("/") ? "" : "/"}${attemptDetails.questionPaperUrl}`}
+                      url={(() => {
+                        const raw =
+                          attemptDetails.questionPaperUrl ||
+                          attemptDetails?.examId?.questionPaperUrl ||
+                          "";
+                        if (!raw) return "";
+                        if (raw.startsWith("http")) return raw;
+                        return `${typeof window !== "undefined" ? window.location.origin : ""}/api/v1${
+                          raw.startsWith("/") ? "" : "/"
+                        }${raw}`;
+                      })()}
                     />
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-3 justify-between">
@@ -1213,110 +1838,28 @@ const StudentExams = ({ accessToken, resetTrigger = 0 }) => {
                       </svg>
                       Submit for evaluation
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => handleForfeit()}
+                      className="ml-3 inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-xl hover:from-red-700 hover:to-red-800 transition-all shadow-lg"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Forfeit exam
+                    </button>
                   </>
                 )}
               </div>
-            </div>
-          )}
+                  </div>
+                )}
 
-          {/* Extend/Forfeit (MCQ only): Extend only after expiry; Forfeit only before expiry. PDF actions handled in PDF block. */}
-          {attemptIdInput && !isPdfExam && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                {isPdfExam && !pdfSubmitted && !attemptTimeExpired && (
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <label htmlFor="pdf-upload" className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 cursor-pointer">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                      Choose PDF
-                    </label>
-                  </div>
-                )}
-                {attemptTimeExpired && !noExtensionsAvailable && (
-                  <div className="flex gap-2">
-                    <button onClick={handleExtendTime} className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-medium rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all shadow-sm flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      Extend time
-                    </button>
-                  </div>
-                )}
-                {!attemptTimeExpired && (
-                  <div className="flex gap-2">
-                    <button onClick={handleForfeit} className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg hover:from-red-700 hover:to-red-800 transition-all shadow-sm flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                      Forfeit exam
-                    </button>
-                  </div>
-                )}
-              </div>
+            
+             
             </div>
-          )}
-
-          {exams.filter((e) => e.attemptStatus === "submitted" || e.attemptStatus === "evaluated").length > 0 && (
-            <div className="space-y-3 pt-4 border-t border-gray-200">
-              <h4 className="text-sm font-semibold text-gray-700">Your submitted exams</h4>
-              <div className="rounded-xl border border-gray-200">
-                <div className="w-full overflow-x-auto">
-                <table className="w-full text-sm min-w-[420px]">
-                  <thead className="bg-gray-50 text-gray-600">
-                    <tr>
-                      <th className="px-4 py-2.5 text-left font-medium">Exam</th>
-                      <th className="px-4 py-2.5 text-left font-medium">Level</th>
-                      <th className="px-4 py-2.5 text-left font-medium">Status</th>
-                      <th className="px-4 py-2.5 text-right font-medium">Marks</th>
-                      <th className="px-4 py-2.5 text-left font-medium">Remarks</th>
-                      <th className="px-4 py-2.5 text-right font-medium">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {exams.filter((e) => e.attemptStatus === "submitted" || e.attemptStatus === "evaluated").map((exam) => (
-                      <tr key={exam._id} className="hover:bg-gray-50/70">
-                        <td className="px-4 py-2.5 font-medium text-gray-900">{exam.name}</td>
-                        <td className="px-4 py-2.5 text-gray-600 capitalize">{exam.level}</td>
-                        <td className="px-4 py-2.5">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${exam.attemptStatus === "evaluated" ? "bg-emerald-100 text-emerald-800" : "bg-[#137952]/20 text-[#0d5c3d]"}`}>
-                            {exam.attemptStatus === "evaluated" ? "Evaluated" : "Submitted"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-right font-medium text-gray-900">
-                          {marksByExamId[exam._id] != null
-                            ? `${marksByExamId[exam._id]} / ${exam.maxMarks ?? "—"}`
-                            : "—"}
-                        </td>
-                        <td className="px-4 py-2.5 text-gray-600 max-w-[200px]">
-                          {exam.evaluatorRemarks ? (
-                            <span title={exam.evaluatorRemarks} className="line-clamp-2 text-xs">
-                              {exam.evaluatorRemarks}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 text-xs">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <div className="flex items-center justify-end gap-2 flex-wrap">
-                            {exam.attemptStatus === "evaluated" && exam.checkedPdfUrl && (
-                              <a
-                                href={exam.checkedPdfUrl.startsWith("http") ? exam.checkedPdfUrl : `${BASE_URL.replace(/\/api\/v1$/, "")}${exam.checkedPdfUrl.startsWith("/") ? "" : "/"}${exam.checkedPdfUrl}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#137952]/10 text-[#137952] hover:bg-[#137952]/20 font-medium text-xs"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                View PDF
-                              </a>
-                            )}
-                            <button type="button" onClick={() => handleLeaderboard(exam._id)} className="text-[#137952] hover:text-[#0d5c3d] font-medium text-xs">Leaderboard</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

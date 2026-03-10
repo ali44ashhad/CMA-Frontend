@@ -67,9 +67,9 @@ const EvaluatorDashboard = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-gray-50 to-white py-8 sm:py-12 overflow-hidden">
+    <div className="relative min-h-screen bg-white py-8 sm:py-12 overflow-hidden">
       {/* Background Elements */}
-      <div className="pointer-events-none absolute top-0 left-0 right-0 h-56 sm:h-64 bg-gradient-to-r from-[#137952]/5 to-purple-500/5 transform -skew-y-3 -translate-y-10 sm:-translate-y-12" />
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-56 sm:h-64  transform -skew-y-3 -translate-y-10 sm:-translate-y-12" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.02]">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>

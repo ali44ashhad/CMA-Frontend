@@ -53,6 +53,7 @@ const TopicManagement = ({ accessToken }) => {
 
   const [isCreating, setIsCreating] = useState(false);
   const [createForm, setCreateForm] = useState(defaultCreateForm());
+  const [isCreatePackageDropdownOpen, setIsCreatePackageDropdownOpen] = useState(false);
 
   const authedFetch = (path, options = {}) =>
     authedJsonFetch(`${BASE_URL_ADMINS}${path}`, accessToken, options);
@@ -142,24 +143,23 @@ const TopicManagement = ({ accessToken }) => {
     }
   };
 
-  const archiveTopic = async (topicId) => {
+  const deleteTopic = async (topicId) => {
     if (!topicId) return;
     setTopicError("");
     setTopicMessage("");
     const confirmed = window.confirm(
-      "Are you sure you want to archive this topic? (Status will be set to archived.)"
+      "Are you sure you want to permanently delete this paper? All related exams must be deleted first."
     );
     if (!confirmed) return;
     try {
       setSavingId(topicId);
       await authedFetch(`/topics/${topicId}`, {
-        method: "PUT",
-        body: JSON.stringify({ status: "archived" }),
+        method: "DELETE",
       });
-      setTopicMessage("Topic archived successfully.");
+      setTopicMessage("Paper deleted successfully.");
       await loadTopics();
     } catch (err) {
-      setTopicError(err.message || "Failed to archive topic.");
+      setTopicError(err.message || "Failed to delete paper.");
     } finally {
       setSavingId(null);
     }
@@ -207,7 +207,7 @@ const TopicManagement = ({ accessToken }) => {
             Paper Management
           </h2>
           <p className="text-xs text-gray-500">
-            All papers in one view. Edit or archive directly from each row.
+            All papers in one view. Edit or delete directly from each row.
           </p>
         </div>
         <button
@@ -215,7 +215,7 @@ const TopicManagement = ({ accessToken }) => {
           onClick={() => setIsCreating((v) => !v)}
           className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-[#137952] text-white hover:bg-[#0d5c3d]"
         >
-          {isCreating ? "Cancel new topic" : "Add new topic"}
+          {isCreating ? "Cancel new Paper" : "Add new Paper"}
         </button>
       </div>
       {topicError && (
@@ -232,7 +232,7 @@ const TopicManagement = ({ accessToken }) => {
       <div className="space-y-2 text-xs">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-900">
-            Existing Topics
+            Existing Papers
           </h3>
           <span className="text-[11px] text-gray-500">Total: {topics.length}</span>
         </div>
@@ -240,7 +240,7 @@ const TopicManagement = ({ accessToken }) => {
           <p className="text-[11px] text-gray-500">Loading topics...</p>
         ) : topics.length === 0 && !isCreating ? (
           <p className="text-[11px] text-gray-500">
-            No topics found. Click &quot;Add new topic&quot; to create one.
+            No paper found. Click &quot;Add new Paper&quot; to create one.
           </p>
         ) : (
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-auto">
@@ -267,7 +267,7 @@ const TopicManagement = ({ accessToken }) => {
                           setCreateForm((f) => ({ ...f, name: e.target.value }))
                         }
                         className="w-full border rounded px-2 py-1 text-[11px]"
-                        placeholder="Topic name"
+                        placeholder="Paper name"
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -297,41 +297,84 @@ const TopicManagement = ({ accessToken }) => {
                         <option value="final">final</option>
                       </select>
                     </td>
-                    <td className="px-3 py-2">
-                      <select
-                        multiple
-                        size={3}
-                        value={createForm.selectedPackageIds}
-                        onChange={(e) =>
-                          setCreateForm((f) => ({
-                            ...f,
-                            selectedPackageIds: Array.from(
-                              e.target.selectedOptions,
-                              (o) => o.value
-                            ),
-                          }))
+                    <td className="px-3 py-2 relative">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setIsCreatePackageDropdownOpen((open) => !open)
                         }
-                        className="w-full border rounded px-2 py-1 text-[11px]"
-                        title="Hold Ctrl/Cmd to select multiple"
+                        className="w-full border rounded px-2 py-1 text-[11px] flex items-center justify-between bg-white"
                       >
-                        {packages
-                          .filter(
+                        <span className="truncate text-left">
+                          {createForm.selectedPackageIds.length === 0
+                            ? "Select package(s)"
+                            : `${createForm.selectedPackageIds.length} selected`}
+                        </span>
+                        <span className="ml-2 text-gray-400">▾</span>
+                      </button>
+                      {isCreatePackageDropdownOpen && (
+                        <div className="absolute z-20 mt-1 w-[240px] max-w-xs bg-white border border-gray-200 rounded-md shadow-lg max-h-52 overflow-auto text-[11px]">
+                          {packages.filter(
                             (pkg) =>
                               !createForm.level || pkg.level === createForm.level
-                          )
-                          .map((pkg) => (
-                            <option key={pkg._id} value={pkg._id}>
-                              {pkg.name} ({pkg.level})
-                            </option>
-                          ))}
-                        {packages.filter(
-                          (p) => !createForm.level || p.level === createForm.level
-                        ).length === 0 && (
-                          <option disabled>No packages for this level</option>
-                        )}
-                      </select>
+                          ).length === 0 ? (
+                            <div className="px-3 py-2 text-gray-500">
+                              No packages for this level
+                            </div>
+                          ) : (
+                            packages
+                              .filter(
+                                (pkg) =>
+                                  !createForm.level ||
+                                  pkg.level === createForm.level
+                              )
+                              .map((pkg) => {
+                                const checked =
+                                  createForm.selectedPackageIds.includes(
+                                    pkg._id
+                                  );
+                                return (
+                                  <label
+                                    key={pkg._id}
+                                    className="flex items-center px-3 py-1.5 hover:bg-gray-50 cursor-pointer"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      className="mr-2"
+                                      checked={checked}
+                                      onChange={(e) => {
+                                        setCreateForm((f) => {
+                                          const current =
+                                            f.selectedPackageIds || [];
+                                          if (e.target.checked) {
+                                            return {
+                                              ...f,
+                                              selectedPackageIds: [
+                                                ...current,
+                                                pkg._id,
+                                              ],
+                                            };
+                                          }
+                                          return {
+                                            ...f,
+                                            selectedPackageIds: current.filter(
+                                              (id) => id !== pkg._id
+                                            ),
+                                          };
+                                        });
+                                      }}
+                                    />
+                                    <span className="truncate">
+                                      {pkg.name} ({pkg.level})
+                                    </span>
+                                  </label>
+                                );
+                              })
+                          )}
+                        </div>
+                      )}
                       <span className="text-[10px] text-gray-500 block mt-0.5">
-                        Ctrl+click to select multiple
+                        You can select multiple packages
                       </span>
                     </td>
                     <td className="px-3 py-2">
@@ -563,11 +606,11 @@ const TopicManagement = ({ accessToken }) => {
                               </button>
                               <button
                                 type="button"
-                                className="px-2 py-1 rounded-full bg-yellow-50 text-yellow-700 font-medium hover:bg-yellow-100"
-                                onClick={() => archiveTopic(t._id)}
+                                className="px-2 py-1 rounded-full bg-red-50 text-red-700 font-medium hover:bg-red-100"
+                                onClick={() => deleteTopic(t._id)}
                                 disabled={isSaving(t._id)}
                               >
-                                {isSaving(t._id) ? "Archiving..." : "Archive"}
+                                {isSaving(t._id) ? "Deleting..." : "Delete"}
                               </button>
                             </>
                           )}

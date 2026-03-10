@@ -10,6 +10,7 @@ const ExamManagement = ({ accessToken }) => {
     topicId: "",
     level: "foundation",
     year: "",
+    month: "",
     duration: "",
     maxMarks: "",
     extensionsAllowed: "0",
@@ -22,18 +23,21 @@ const ExamManagement = ({ accessToken }) => {
     name: "",
     level: "intermediate",
     year: "",
+    month: "",
     duration: "",
     maxMarks: "",
     topicId: "",
     extensionsAllowed: "0",
     extensionInterval: "0",
     questionPaper: null,
+    answerKey: null,
   });
   const [editingExam, setEditingExam] = useState(null);
   const [editForm, setEditForm] = useState({
     name: "",
     level: "foundation",
     year: "",
+    month: "",
     topicId: "",
     duration: "",
     maxMarks: "",
@@ -131,6 +135,7 @@ const ExamManagement = ({ accessToken }) => {
               topicId: "",
               level: "foundation",
               year: "",
+              month: "",
               duration: "",
               maxMarks: "",
               extensionsAllowed: "0",
@@ -140,12 +145,14 @@ const ExamManagement = ({ accessToken }) => {
               name: "",
               level: "intermediate",
               year: "",
+              month: "",
               duration: "",
               maxMarks: "",
               topicId: "",
               extensionsAllowed: "0",
               extensionInterval: "0",
               questionPaper: null,
+              answerKey: null,
             });
           }}
           className="inline-flex items-center px-4 py-2 rounded-xl bg-[#137952] text-white text-sm font-medium shadow-sm hover:bg-[#0d5c3d]"
@@ -231,6 +238,7 @@ const ExamManagement = ({ accessToken }) => {
                               name: exam.name ?? "",
                               level: safeLevel,
                               year: exam.year != null ? String(exam.year) : "",
+                              month: exam.month != null ? String(exam.month) : "",
                               topicId: initialTopicId,
                               duration: exam.duration != null ? String(exam.duration) : "",
                               maxMarks: exam.maxMarks != null ? String(exam.maxMarks) : "",
@@ -313,6 +321,7 @@ const ExamManagement = ({ accessToken }) => {
                     name: editForm.name.trim(),
                     level: editForm.level,
                     year: editForm.year ? Number(editForm.year) : undefined,
+                    month: editForm.month ? Number(editForm.month) : undefined,
                     topicId: editForm.topicId || undefined,
                     duration: editForm.duration ? Number(editForm.duration) : undefined,
                     maxMarks: editForm.maxMarks ? Number(editForm.maxMarks) : undefined,
@@ -343,23 +352,24 @@ const ExamManagement = ({ accessToken }) => {
                   placeholder="Exam name"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-1">Level</label>
-                      <select
-                        value={editForm.level}
-                        onChange={(e) => {
-                          const newLevel = e.target.value;
-                          const currentTopic = activeTopics.find((t) => t._id === editForm.topicId);
-                          const topicStillValid = currentTopic && (currentTopic.level || "").toLowerCase() === newLevel;
-                          setEditForm((f) => ({
-                            ...f,
-                            level: newLevel,
-                            topicId: topicStillValid ? f.topicId : "",
-                          }));
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      >
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1">Level</label>
+                  <select
+                    value={editForm.level}
+                    onChange={(e) => {
+                      const newLevel = e.target.value;
+                      const currentTopic = activeTopics.find((t) => t._id === editForm.topicId);
+                      const topicStillValid =
+                        currentTopic && (currentTopic.level || "").toLowerCase() === newLevel;
+                      setEditForm((f) => ({
+                        ...f,
+                        level: newLevel,
+                        topicId: topicStillValid ? f.topicId : "",
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  >
                     {(editingExam?.examType || "").toLowerCase() === "pdf" ? (
                       <>
                         <option value="intermediate">Intermediate</option>
@@ -379,6 +389,28 @@ const ExamManagement = ({ accessToken }) => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                     placeholder="YYYY"
                   />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1">Month</label>
+                  <select
+                    value={editForm.month}
+                    onChange={(e) => setEditForm((f) => ({ ...f, month: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  >
+                    <option value="">Select</option>
+                    <option value="1">Jan</option>
+                    <option value="2">Feb</option>
+                    <option value="3">Mar</option>
+                    <option value="4">Apr</option>
+                    <option value="5">May</option>
+                    <option value="6">Jun</option>
+                    <option value="7">Jul</option>
+                    <option value="8">Aug</option>
+                    <option value="9">Sep</option>
+                    <option value="10">Oct</option>
+                    <option value="11">Nov</option>
+                    <option value="12">Dec</option>
+                  </select>
                 </div>
               </div>
               <div>
@@ -518,22 +550,23 @@ const ExamManagement = ({ accessToken }) => {
                     }
                     try {
                       setExamSaving(true);
-                      const payload = {
-                        name: mcqForm.name,
-                        topicId: mcqForm.topicId,
-                        level: mcqForm.level,
-                        year: mcqForm.year ? Number(mcqForm.year) : undefined,
-                        duration: mcqForm.duration ? Number(mcqForm.duration) : undefined,
-                        maxMarks: mcqForm.maxMarks ? Number(mcqForm.maxMarks) : valid.reduce((s, q) => s + Number(q.marks || 0), 0),
-                        extensionsAllowed: Number(mcqForm.extensionsAllowed) || 0,
-                        extensionInterval: Number(mcqForm.extensionInterval) || 0,
-                        questions: valid.map((q) => ({
-                          questionText: q.questionText,
-                          options: q.options,
-                          correctOption: Number(q.correctOption),
-                          marks: Number(q.marks || 1),
-                        })),
-                      };
+                  const payload = {
+                    name: mcqForm.name,
+                    topicId: mcqForm.topicId,
+                    level: mcqForm.level,
+                    year: mcqForm.year ? Number(mcqForm.year) : undefined,
+                    month: mcqForm.month ? Number(mcqForm.month) : undefined,
+                    duration: mcqForm.duration ? Number(mcqForm.duration) : undefined,
+                    maxMarks: mcqForm.maxMarks ? Number(mcqForm.maxMarks) : valid.reduce((s, q) => s + Number(q.marks || 0), 0),
+                    extensionsAllowed: Number(mcqForm.extensionsAllowed) || 0,
+                    extensionInterval: Number(mcqForm.extensionInterval) || 0,
+                    questions: valid.map((q) => ({
+                      questionText: q.questionText,
+                      options: q.options,
+                      correctOption: Number(q.correctOption),
+                      marks: Number(q.marks || 1),
+                    })),
+                  };
                       await authedFetch("/exams/mcq", { method: "POST", body: JSON.stringify(payload) });
                       setExamMessage("MCQ exam created successfully.");
                       loadExams();
@@ -556,7 +589,7 @@ const ExamManagement = ({ accessToken }) => {
                       placeholder="Exam name"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="block text-gray-700 font-medium mb-1">Level</label>
                       <select
@@ -577,6 +610,28 @@ const ExamManagement = ({ accessToken }) => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                         placeholder="YYYY"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-1">Month</label>
+                      <select
+                        value={mcqForm.month}
+                        onChange={(e) => setMcqForm((f) => ({ ...f, month: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      >
+                        <option value="">Select</option>
+                        <option value="1">Jan</option>
+                        <option value="2">Feb</option>
+                        <option value="3">Mar</option>
+                        <option value="4">Apr</option>
+                        <option value="5">May</option>
+                        <option value="6">Jun</option>
+                        <option value="7">Jul</option>
+                        <option value="8">Aug</option>
+                        <option value="9">Sep</option>
+                        <option value="10">Oct</option>
+                        <option value="11">Nov</option>
+                        <option value="12">Dec</option>
+                      </select>
                     </div>
                   </div>
                   <div>
@@ -742,11 +797,13 @@ const ExamManagement = ({ accessToken }) => {
                       setExamSaving(true);
                       const formData = new FormData();
                       formData.append("questionPaper", pdfExamForm.questionPaper);
+                      if (pdfExamForm.answerKey) formData.append("answerKey", pdfExamForm.answerKey);
                       formData.append("name", pdfExamForm.name);
                       formData.append("level", pdfExamForm.level);
                       formData.append("examType", "pdf");
                       formData.append("topicId", pdfExamForm.topicId);
                       if (pdfExamForm.year) formData.append("year", pdfExamForm.year);
+                      if (pdfExamForm.month) formData.append("month", pdfExamForm.month);
                       if (pdfExamForm.duration) formData.append("duration", pdfExamForm.duration);
                       if (pdfExamForm.maxMarks) formData.append("maxMarks", pdfExamForm.maxMarks);
                       formData.append("extensionsAllowed", pdfExamForm.extensionsAllowed || "0");
@@ -779,7 +836,7 @@ const ExamManagement = ({ accessToken }) => {
                       placeholder="Exam name"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="block text-gray-700 font-medium mb-1">Level</label>
                       <select
@@ -787,7 +844,8 @@ const ExamManagement = ({ accessToken }) => {
                         onChange={(e) => {
                           const newLevel = e.target.value;
                           const currentTopic = activeTopics.find((t) => t._id === pdfExamForm.topicId);
-                          const topicStillValid = currentTopic && (currentTopic.level || "").toLowerCase() === newLevel;
+                          const topicStillValid =
+                            currentTopic && (currentTopic.level || "").toLowerCase() === newLevel;
                           setPdfExamForm((f) => ({
                             ...f,
                             level: newLevel,
@@ -799,7 +857,9 @@ const ExamManagement = ({ accessToken }) => {
                         <option value="intermediate">Intermediate</option>
                         <option value="final">Final</option>
                       </select>
-                      <p className="text-[10px] text-gray-500 mt-0.5">PDF exams are for Intermediate or Final only.</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        PDF exams are for Intermediate or Final only.
+                      </p>
                     </div>
                     <div>
                       <label className="block text-gray-700 font-medium mb-1">Year</label>
@@ -810,6 +870,28 @@ const ExamManagement = ({ accessToken }) => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                         placeholder="YYYY"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-1">Month</label>
+                      <select
+                        value={pdfExamForm.month}
+                        onChange={(e) => setPdfExamForm((f) => ({ ...f, month: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      >
+                        <option value="">Select</option>
+                        <option value="1">Jan</option>
+                        <option value="2">Feb</option>
+                        <option value="3">Mar</option>
+                        <option value="4">Apr</option>
+                        <option value="5">May</option>
+                        <option value="6">Jun</option>
+                        <option value="7">Jul</option>
+                        <option value="8">Aug</option>
+                        <option value="9">Sep</option>
+                        <option value="10">Oct</option>
+                        <option value="11">Nov</option>
+                        <option value="12">Dec</option>
+                      </select>
                     </div>
                   </div>
                   <div>
@@ -875,14 +957,39 @@ const ExamManagement = ({ accessToken }) => {
                       />
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-1">Question paper (PDF)</label>
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      onChange={(e) => setPdfExamForm((f) => ({ ...f, questionPaper: e.target.files?.[0] || null }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-1">
+                        Question paper (PDF)
+                      </label>
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) =>
+                          setPdfExamForm((f) => ({
+                            ...f,
+                            questionPaper: e.target.files?.[0] || null,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-1">
+                        Answer key (PDF)
+                      </label>
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) =>
+                          setPdfExamForm((f) => ({
+                            ...f,
+                            answerKey: e.target.files?.[0] || null,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      />
+                    </div>
                   </div>
                   {examError && (
                     <div className="text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm">
@@ -914,4 +1021,3 @@ const ExamManagement = ({ accessToken }) => {
 };
 
 export default ExamManagement;
-

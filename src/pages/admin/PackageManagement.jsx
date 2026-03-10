@@ -112,25 +112,25 @@ const PackageManagement = ({ accessToken }) => {
     }
   };
 
-  const archivePackage = async (pkgId) => {
+  const deletePackage = async (pkgId) => {
     if (!pkgId) return;
     setPackageError("");
     setPackageMessage("");
 
     const confirmed = window.confirm(
-      "Are you sure you want to archive this package?"
+      "Are you sure you want to permanently delete this package from the database? This action cannot be undone."
     );
     if (!confirmed) return;
 
     try {
       setSavingId(pkgId);
-      await authedFetch(`/packages/${pkgId}/archive`, {
-        method: "PUT",
+      await authedFetch(`/packages/${pkgId}`, {
+        method: "DELETE",
       });
-      setPackageMessage("Package archived successfully.");
+      setPackageMessage("Package deleted successfully.");
       await loadPackages();
     } catch (err) {
-      setPackageError(err.message || "Failed to archive package.");
+      setPackageError(err.message || "Failed to delete package.");
     } finally {
       setSavingId(null);
     }
@@ -184,8 +184,7 @@ const PackageManagement = ({ accessToken }) => {
             Package Management
           </h2>
           <p className="text-xs text-gray-500">
-            All packages in a single view. Edit or archive directly from each
-            row.
+            All packages in a single view. Edit or delete directly from each row.
           </p>
         </div>
         <button
@@ -519,11 +518,11 @@ const PackageManagement = ({ accessToken }) => {
                               </button>
                               <button
                                 type="button"
-                                className="px-2 py-1 rounded-full bg-yellow-50 text-yellow-700 font-medium hover:bg-yellow-100"
-                                onClick={() => archivePackage(p._id)}
+                                className="px-2 py-1 rounded-full bg-red-50 text-red-700 font-medium hover:bg-red-100"
+                                onClick={() => deletePackage(p._id)}
                                 disabled={isSaving(p._id)}
                               >
-                                {isSaving(p._id) ? "Archiving..." : "Archive"}
+                                {isSaving(p._id) ? "Deleting..." : "Delete"}
                               </button>
                             </>
                           )}

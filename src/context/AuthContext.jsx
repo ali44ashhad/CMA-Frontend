@@ -107,7 +107,34 @@ export const AuthProvider = ({ children }) => {
     });
     const data = await res.json();
     if (!data.success) {
-      throw new Error(data?.error || data?.message || "Registration failed");
+      // Prefer top-level message (e.g. "Email already exists") over error.code
+      const primary = data?.message ?? data?.error;
+      let message = "Registration failed";
+
+      if (typeof primary === "string") {
+        message = primary;
+      } else if (primary && typeof primary === "object") {
+        const nested =
+          primary.message ||
+          primary.error ||
+          Object.values(primary)
+            .filter((v) => typeof v === "string")
+            .join(", ");
+        if (nested) {
+          message = nested;
+        }
+      }
+
+      // If still generic and we have top-level error.code, optionally append it
+      if (
+        message === "Registration failed" &&
+        data?.error &&
+        typeof data.error.code === "string"
+      ) {
+        message = `${message} (${data.error.code})`;
+      }
+
+      throw new Error(message);
     }
     handleAuthSuccess(data.data);
     return data;
@@ -123,7 +150,32 @@ export const AuthProvider = ({ children }) => {
     });
     const data = await res.json();
     if (!data.success) {
-      throw new Error(data?.error || data?.message || "Login failed");
+      const primary = data?.message ?? data?.error;
+      let message = "Login failed";
+
+      if (typeof primary === "string") {
+        message = primary;
+      } else if (primary && typeof primary === "object") {
+        const nested =
+          primary.message ||
+          primary.error ||
+          Object.values(primary)
+            .filter((v) => typeof v === "string")
+            .join(", ");
+        if (nested) {
+          message = nested;
+        }
+      }
+
+      if (
+        message === "Login failed" &&
+        data?.error &&
+        typeof data.error.code === "string"
+      ) {
+        message = `${message} (${data.error.code})`;
+      }
+
+      throw new Error(message);
     }
     handleAuthSuccess(data.data);
     return data;
@@ -167,7 +219,32 @@ export const AuthProvider = ({ children }) => {
     });
     const data = await res.json();
     if (!data.success) {
-      throw new Error(data?.error || data?.message || "Password change failed");
+      const primary = data?.message ?? data?.error;
+      let message = "Password change failed";
+
+      if (typeof primary === "string") {
+        message = primary;
+      } else if (primary && typeof primary === "object") {
+        const nested =
+          primary.message ||
+          primary.error ||
+          Object.values(primary)
+            .filter((v) => typeof v === "string")
+            .join(", ");
+        if (nested) {
+          message = nested;
+        }
+      }
+
+      if (
+        message === "Password change failed" &&
+        data?.error &&
+        typeof data.error.code === "string"
+      ) {
+        message = `${message} (${data.error.code})`;
+      }
+
+      throw new Error(message);
     }
     return data;
   };
