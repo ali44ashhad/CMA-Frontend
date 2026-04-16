@@ -2,6 +2,15 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+// Index PDF opens in Google Drive (not WhatsApp). Prefer .env: VITE_INDEX_PDF_URL=your_link
+// Or paste the same link below as a fallback:
+const INDEX_PDF_URL_INLINE = "https://drive.google.com/file/d/19yVdckx1fY3YyE1kG13Ea_82Y6wF7_13/view?usp=sharing";
+
+const INDEX_PDF_URL =
+  (import.meta.env.VITE_INDEX_PDF_URL && String(import.meta.env.VITE_INDEX_PDF_URL).trim()) ||
+  (typeof INDEX_PDF_URL_INLINE === "string" && INDEX_PDF_URL_INLINE.trim()) ||
+  "";
+
 const Pricing = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
@@ -18,23 +27,24 @@ const Pricing = () => {
 
   const plans = [
     {
-      name: "Foundation Starter",
+      name: "Foundation",
       level: "Foundation",
-      price: "₹899",
+      price: "₹0",
       period: "per attempt",
       highlight: "Best for first-time CMA aspirants",
       features: [
-        "Full syllabus mock test (Objective + Descriptive)",
+        "Full syllabus mock test",  
         "Detailed performance analytics",
-        "Section-wise strength / weakness report",
-        "1-time evaluator checked answer sheet",
+        "Section-wise strength",
         "AI-based time management insights",
+        "Exam pattern based mock tests"
+        
       ],
       badge: "Popular for Foundation",
       color: "from-[#137952] to-[#0d5c3d]",
     },
     {
-      name: "Intermediate Pro",
+      name: "Intermediate",
       level: "Intermediate",
       price: "₹1,499",
       period: "per attempt",
@@ -46,25 +56,28 @@ const Pricing = () => {
         "WhatsApp / Email performance report",
         "Priority doubt resolution support",
       ],
-      badge: "Most Popular",
-      color: "from-indigo-500 to-indigo-700",
-      featured: true,
+      badge: "Coming soon",
+      color: "from-gray-400 to-gray-500",
+      comingSoon: true,
     },
     {
-      name: "Final Ranker",
+      name: "Final",
       level: "Final",
-      price: "₹1,999",
-      period: "per attempt",
+      price: "₹1,499",
+      period: "per Group",
+      individualPaperLabel: "Individual paper",
+      individualPaperPrice: "₹500",
       highlight: "For rank-oriented CMA Final students",
       features: [
+        "Full syllabus mock test",
+        "Topic Wise test",
+        "Detailed performance analytics",
+        "AI-based time management insights",
         "Exam pattern based mock tests",
-        "Question-wise marking scheme",
-        "Evaluator comments for improvement",
-        "Leaderboard & comparative analysis",
-        "Revision test before actual exam",
       ],
       badge: "For Rank Aspirants",
       color: "from-emerald-500 to-emerald-600",
+      showIndexPdf: true,
     },
   ];
 
@@ -190,9 +203,13 @@ const Pricing = () => {
             {plans.map((plan) => (
               <div
                 key={plan.name}
-                className={`relative bg-white rounded-2xl border ${
-                  plan.featured ? "border-[#137952] shadow-2xl scale-[1.02]" : "border-gray-200 shadow-lg"
-                } p-6 lg:p-8 flex flex-col`}
+                className={`relative rounded-2xl border p-6 lg:p-8 flex flex-col ${
+                  plan.comingSoon
+                    ? "bg-gray-100 border-gray-300 shadow-md opacity-95"
+                    : plan.featured
+                      ? "bg-white border-[#137952] shadow-2xl scale-[1.02]"
+                      : "bg-white border-gray-200 shadow-lg"
+                }`}
               >
                 {plan.badge && (
                   <div
@@ -203,24 +220,79 @@ const Pricing = () => {
                 )}
 
                 <div className="mb-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#137952]">
+                  <p
+                    className={`text-xs font-semibold uppercase tracking-wide ${
+                      plan.comingSoon ? "text-gray-500" : "text-[#137952]"
+                    }`}
+                  >
                     {plan.level}
                   </p>
-                  <h3 className="text-xl font-bold text-gray-900 mt-1 mb-2">{plan.name}</h3>
-                  <p className="text-sm text-gray-600">{plan.highlight}</p>
+                  <h3
+                    className={`text-xl font-bold mt-1 mb-2 ${
+                      plan.comingSoon ? "text-gray-600" : "text-gray-900"
+                    }`}
+                  >
+                    {plan.name}
+                  </h3>
+                  <p className={`text-sm ${plan.comingSoon ? "text-gray-500" : "text-gray-600"}`}>
+                    {plan.highlight}
+                  </p>
                 </div>
 
-                <div className="flex items-baseline gap-2 mb-6">
-                  <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
-                  <span className="text-xs text-gray-500">{plan.period}</span>
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-2">
+                    <span
+                      className={`text-3xl font-bold ${
+                        plan.comingSoon ? "text-gray-500" : "text-gray-900"
+                      }`}
+                    >
+                      {plan.price}
+                    </span>
+                    <span
+                      className={`text-xs text-gray-500 ${
+                        String(plan.level).toLowerCase() === "final"
+                          ? "font-extrabold"
+                          : "font-normal"
+                      }`}
+                    >
+                      {plan.period}
+                    </span>
+                  </div>
+                  {plan.individualPaperPrice && (
+                    <p
+                      className={`text-sm mt-2 ${
+                        plan.comingSoon ? "text-gray-500" : "text-gray-700"
+                      }`}
+                    >
+                      <span className={plan.comingSoon ? "text-gray-500" : "text-gray-600"}>
+                        {plan.individualPaperLabel ?? "Individual paper"}:{" "}
+                      </span>
+                      <span
+                        className={`font-semibold ${
+                          plan.comingSoon ? "text-gray-600" : "text-emerald-700"
+                        }`}
+                      >
+                        {plan.individualPaperPrice}
+                      </span>
+                    </p>
+                  )}
                 </div>
 
                 <ul className="space-y-2 mb-6 flex-1">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-sm text-gray-700">
-                      <span className="mt-1 w-4 h-4 rounded-full bg-[#137952]/10 flex items-center justify-center">
+                    <li
+                      key={feature}
+                      className={`flex items-start gap-2 text-sm ${
+                        plan.comingSoon ? "text-gray-500" : "text-gray-700"
+                      }`}
+                    >
+                      <span
+                        className={`mt-1 w-4 h-4 rounded-full flex items-center justify-center ${
+                          plan.comingSoon ? "bg-gray-200" : "bg-[#137952]/10"
+                        }`}
+                      >
                         <svg
-                          className="w-3 h-3 text-[#137952]"
+                          className={`w-3 h-3 ${plan.comingSoon ? "text-gray-400" : "text-[#137952]"}`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -238,28 +310,67 @@ const Pricing = () => {
                   ))}
                 </ul>
 
-                <button
-                  type="button"
-                  onClick={handleGetStarted}
-                  className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#137952] to-[#0d5c3d] hover:from-[#0d5c3d] hover:to-[#0a4a2e] shadow-md hover:shadow-lg transition-all"
-                >
-                  Get Started
-                  <svg
-                    className="w-4 h-4 ml-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                {plan.comingSoon ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-sm font-semibold text-gray-500 bg-gray-200 border border-gray-300 cursor-not-allowed"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
+                    Coming soon
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGetStarted}
+                    className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#137952] to-[#0d5c3d] hover:from-[#0d5c3d] hover:to-[#0a4a2e] shadow-md hover:shadow-lg transition-all"
+                  >
+                    Get Started
+                    <svg
+                      className="w-4 h-4 ml-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                )}
 
-                <p className="mt-3 text-[11px] text-gray-500 text-center">
+                {plan.showIndexPdf && !plan.comingSoon && INDEX_PDF_URL && (
+                  <a
+                    href={INDEX_PDF_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-[#137952] border border-[#137952]/35 bg-[#137952]/5 hover:bg-[#137952]/10 transition-all"
+                  >
+                    <svg
+                      className="w-5 h-5 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    Get index (PDF)
+                  </a>
+                )}
+
+                <p
+                  className={`mt-3 text-[11px] text-center ${
+                    plan.comingSoon ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
                   Prices inclusive of all taxes. Payment powered by secure Razorpay gateway.
                 </p>
               </div>
